@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment files — commit .env.development/.env.production as templates only
+# Real secrets go in .env.local (never committed)
+.env
+.env.local
+.env.*.local
+
+# pnpm
+.pnpm-store/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript incremental compilation
+*.tsbuildinfo
+
+# Test coverage
+coverage/

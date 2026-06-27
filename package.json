@@ -1,0 +1,37 @@
+{
+  "name": "defence-overseas-crm",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Defence Overseas CRM — Internal student pipeline management system",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter=@doc/api dev",
+    "dev:web": "pnpm --filter=@doc/web dev",
+    "build:shared": "pnpm --filter=@doc/shared build",
+    "build": "pnpm run build:shared && pnpm --filter=apps/* build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.4.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.9",
+    "husky": "^9.1.4",
+    "lint-staged": "^15.2.8",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
