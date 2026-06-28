@@ -1,11 +1,11 @@
 import { Router } from 'express';
+import authRoutes from '../modules/auth/auth.routes';
+import employeeRoutes from '../modules/employee/employee.routes';
 
 /**
  * Root API router mounted at /api/v1.
  *
- * Business module routers are added here in Milestones 4–9:
- *   router.use('/auth',         authRoutes)       // M4
- *   router.use('/employees',    employeeRoutes)   // M4
+ * Business module routers added in Milestones 5–9:
  *   router.use('/leads',        leadRoutes)       // M5
  *   router.use('/students',     studentRoutes)    // M6
  *   router.use('/applications', applicationRoutes)// M7
@@ -22,5 +22,9 @@ import { Router } from 'express';
  */
 export function createRouter(): Router {
   const router = Router();
+
+  router.use('/auth', authRoutes);
+  router.use('/employees', employeeRoutes);
+
   return router;
 }
