@@ -10,8 +10,8 @@
     "declarationMap": true,
     "isolatedModules": true,
     "paths": {
-      "@doc/shared": ["../../packages/shared/src/index.ts"],
-      "@doc/shared/*": ["../../packages/shared/src/*"]
+      "@doc/shared": ["../../packages/shared/dist/index"],
+      "@doc/shared/*": ["../../packages/shared/dist/*"]
     }
   },
   "include": ["src/**/*"],

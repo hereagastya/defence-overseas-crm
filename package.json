@@ -16,7 +16,7 @@
     "lint:fix": "pnpm -r lint:fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm run build:shared && pnpm -r typecheck",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
-// Barrel export for @doc/shared
-// Populated in Milestone 2: enums, types, schemas, constants, contracts
-
-export {};
+export * from './enums';
+export * from './types';
+export * from './schemas';
+export * from './constants';
+export * from './contracts/endpoints';

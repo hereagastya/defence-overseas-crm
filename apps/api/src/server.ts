@@ -1,20 +1,21 @@
-import 'dotenv/config';
+import { env } from './config/env';
+import { logger } from './utils/logger';
 import { createApp } from './app';
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const app = createApp();
 
-const server = app.listen(PORT, () => {
-  console.log(`[api] Server running on port ${PORT} in ${NODE_ENV} mode`);
-  console.log(`[api] Health check: http://localhost:${PORT}/health`);
+const server = app.listen(env.PORT, () => {
+  logger.info(
+    { port: env.PORT, nodeEnv: env.NODE_ENV },
+    `[api] Server running on port ${env.PORT} in ${env.NODE_ENV} mode`,
+  );
+  logger.info(`[api] Health check: http://localhost:${env.PORT}/health`);
 });
 
 process.on('SIGTERM', () => {
-  console.log('[api] SIGTERM received. Shutting down gracefully...');
+  logger.info('[api] SIGTERM received — shutting down gracefully');
   server.close(() => {
-    console.log('[api] Server closed.');
+    logger.info('[api] Server closed');
     process.exit(0);
   });
 });
