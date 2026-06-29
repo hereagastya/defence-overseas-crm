@@ -1,4 +1,6 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '../../config/supabase';
+import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 import { AppError } from '../../utils/AppError';
 import { logActivity } from '../../database/activityLogger';
@@ -35,13 +37,40 @@ export interface SessionProfile {
   } | null;
 }
 
+// Creates a throw-away client for signInWithPassword so the shared supabaseAdmin
+// singleton is never given a user session. GoTrueClient._saveSession stores the
+// returned JWT in memory even with persistSession: false, which would cause every
+// subsequent supabaseAdmin.from() call to send the user's token instead of the
+// service-role key — RLS would be enforced instead of bypassed.
+function createAuthClient() {
+  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 export async function login(input: LoginInput): Promise<LoginResult> {
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+  // DEBUG — remove after diagnosis
+  logger.debug(
+    { email: input.email, supabaseUrl: env.SUPABASE_URL },
+    '[login:debug] calling signInWithPassword',
+  );
+  // eslint-disable-next-line no-console
+  console.error('[login:debug] email=%s  url=%s', input.email, env.SUPABASE_URL);
+
+  const authClient = createAuthClient();
+  const { data, error } = await authClient.auth.signInWithPassword({
     email: input.email,
     password: input.password,
   });
 
   if (error || !data.session || !data.user) {
+    // DEBUG — log the raw Supabase error so we know what actually failed
+    logger.error(
+      { supabaseError: error, hasSession: !!data?.session, hasUser: !!data?.user },
+      '[login:debug] signInWithPassword returned error or missing session/user',
+    );
+    // eslint-disable-next-line no-console
+    console.error('[login:debug] Supabase error:', JSON.stringify(error, null, 2));
     throw new AppError('INVALID_CREDENTIALS', 401, 'Invalid email or password');
   }
 
@@ -52,7 +81,15 @@ export async function login(input: LoginInput): Promise<LoginResult> {
     .single();
 
   if (userError || !userRow) {
-    throw new AppError('INTERNAL_SERVER_ERROR', 500, 'User record not found');
+    logger.error(
+      { error: userError, userId: data.user.id },
+      'CRM user profile missing after successful Supabase auth — handle_new_auth_user trigger may not have fired',
+    );
+    throw new AppError(
+      'INTERNAL_SERVER_ERROR',
+      500,
+      'User profile not found. Contact your administrator.',
+    );
   }
 
   const user = userRow as { id: string; email: string; role: string; is_active: boolean };
@@ -73,7 +110,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   const emp = empRow as { id: string; full_name: string } | null;
 
-  // Update last_login_at without blocking the response
+  // Fire-and-forget — does not block the response
   supabaseAdmin
     .from('users')
     .update({ last_login_at: new Date().toISOString() })
@@ -142,7 +179,8 @@ export async function changePassword(
   accessToken: string,
   input: ChangePasswordInput,
 ): Promise<void> {
-  const { error: verifyError } = await supabaseAdmin.auth.signInWithPassword({
+  const authClient = createAuthClient();
+  const { error: verifyError } = await authClient.auth.signInWithPassword({
     email,
     password: input.current_password,
   });
@@ -156,6 +194,7 @@ export async function changePassword(
   });
 
   if (updateError) {
+    logger.error({ error: updateError, userId }, 'Failed to update password via admin API');
     throw new AppError('INTERNAL_SERVER_ERROR', 500, 'Failed to update password');
   }
 
