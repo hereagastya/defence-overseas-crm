@@ -49,14 +49,6 @@ function createAuthClient() {
 }
 
 export async function login(input: LoginInput): Promise<LoginResult> {
-  // DEBUG — remove after diagnosis
-  logger.debug(
-    { email: input.email, supabaseUrl: env.SUPABASE_URL },
-    '[login:debug] calling signInWithPassword',
-  );
-  // eslint-disable-next-line no-console
-  console.error('[login:debug] email=%s  url=%s', input.email, env.SUPABASE_URL);
-
   const authClient = createAuthClient();
   const { data, error } = await authClient.auth.signInWithPassword({
     email: input.email,
@@ -64,13 +56,6 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   });
 
   if (error || !data.session || !data.user) {
-    // DEBUG — log the raw Supabase error so we know what actually failed
-    logger.error(
-      { supabaseError: error, hasSession: !!data?.session, hasUser: !!data?.user },
-      '[login:debug] signInWithPassword returned error or missing session/user',
-    );
-    // eslint-disable-next-line no-console
-    console.error('[login:debug] Supabase error:', JSON.stringify(error, null, 2));
     throw new AppError('INVALID_CREDENTIALS', 401, 'Invalid email or password');
   }
 
