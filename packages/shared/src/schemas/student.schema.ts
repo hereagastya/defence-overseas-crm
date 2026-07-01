@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { StudentStage, LeadScore } from '../enums';
 
+export const assignStudentSchema = z.object({
+  counselor_id: z.string().uuid('Invalid counselor ID'),
+});
+
+export type AssignStudentInput = z.infer<typeof assignStudentSchema>;
+
 export const updateStudentSchema = z.object({
   full_name: z.string().min(2).max(255).optional(),
   email: z.string().email().optional().or(z.literal('')),
