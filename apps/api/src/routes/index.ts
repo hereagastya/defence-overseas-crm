@@ -3,13 +3,13 @@ import authRoutes from '../modules/auth/auth.routes';
 import employeeRoutes from '../modules/employee/employee.routes';
 import leadRoutes from '../modules/lead/lead.routes';
 import studentRoutes from '../modules/student/student.routes';
+import applicationRoutes from '../modules/application/application.routes';
+import documentRoutes from '../modules/document/document.routes';
 
 /**
  * Root API router mounted at /api/v1.
  *
- * Business module routers added in Milestones 7–9:
- *   router.use('/applications', applicationRoutes)// M7
- *   router.use('/documents',    documentRoutes)   // M7
+ * Business module routers added in Milestones 8–9:
  *   router.use('/payments',     paymentRoutes)    // M8
  *   router.use('/tasks',        taskRoutes)       // M9
  *   router.use('/follow-ups',   followUpRoutes)   // M9
@@ -27,6 +27,9 @@ export function createRouter(): Router {
   router.use('/employees', employeeRoutes);
   router.use('/leads', leadRoutes);
   router.use('/students', studentRoutes);
+  // Nested under students — mergeParams in sub-routers exposes :studentId
+  router.use('/students/:studentId/applications', applicationRoutes);
+  router.use('/students/:studentId/documents', documentRoutes);
 
   return router;
 }
