@@ -5,12 +5,14 @@ import leadRoutes from '../modules/lead/lead.routes';
 import studentRoutes from '../modules/student/student.routes';
 import applicationRoutes from '../modules/application/application.routes';
 import documentRoutes from '../modules/document/document.routes';
+import feeRoutes from '../modules/fee/fee.routes';
+import paymentRoutes from '../modules/payment/payment.routes';
+import duesRoutes from '../modules/payment/dues.routes';
 
 /**
  * Root API router mounted at /api/v1.
  *
- * Business module routers added in Milestones 8–9:
- *   router.use('/payments',     paymentRoutes)    // M8
+ * Business module routers added in Milestone 9:
  *   router.use('/tasks',        taskRoutes)       // M9
  *   router.use('/follow-ups',   followUpRoutes)   // M9
  *   router.use('/dashboard',    dashboardRoutes)  // M9
@@ -30,6 +32,11 @@ export function createRouter(): Router {
   // Nested under students — mergeParams in sub-routers exposes :studentId
   router.use('/students/:studentId/applications', applicationRoutes);
   router.use('/students/:studentId/documents', documentRoutes);
+  router.use('/students/:studentId/fees', feeRoutes);
+  // Payments nested two levels deep — mergeParams exposes both :studentId and :feeId
+  router.use('/students/:studentId/fees/:feeId/payments', paymentRoutes);
+  // Standalone dues report
+  router.use('/payments', duesRoutes);
 
   return router;
 }

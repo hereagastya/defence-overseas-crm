@@ -1,0 +1,162 @@
+import PDFDocument from 'pdfkit';
+import type { StudentFee, Payment } from '@doc/shared';
+import { PAYMENT_CATEGORY_LABELS, PAYMENT_METHOD_LABELS, DEFAULT_CURRENCY } from '@doc/shared';
+
+/** Generates an in-memory PDF receipt Buffer for a recorded installment. */
+export function generateReceiptPdf(
+  payment: Payment,
+  fee: StudentFee,
+  studentName: string,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const chunks: Buffer[] = [];
+
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const primary = '#1a56db';
+    const gray = '#6b7280';
+    const light = '#f3f4f6';
+    const dark = '#111827';
+
+    // ── Header bar ─────────────────────────────────────────────────────────────
+    doc.rect(0, 0, doc.page.width, 80).fill(primary);
+
+    doc.fillColor('white').fontSize(22).font('Helvetica-Bold').text('DEFENCE OVERSEAS', 50, 22);
+
+    doc.fillColor('white').fontSize(10).font('Helvetica').text('Payment Receipt', 50, 50);
+
+    doc
+      .fillColor('white')
+      .fontSize(10)
+      .text(`Receipt No: ${payment.receipt_number}`, 350, 30, { align: 'right', width: 200 });
+
+    doc
+      .fillColor('white')
+      .fontSize(10)
+      .text(`Date: ${payment.payment_date}`, 350, 48, { align: 'right', width: 200 });
+
+    // ── Student Info ────────────────────────────────────────────────────────────
+    const sectionTop = 110;
+    doc.rect(50, sectionTop, 495, 70).fill(light);
+
+    doc
+      .fillColor(dark)
+      .fontSize(11)
+      .font('Helvetica-Bold')
+      .text('Student', 65, sectionTop + 12);
+
+    doc
+      .fillColor(dark)
+      .fontSize(12)
+      .font('Helvetica')
+      .text(studentName, 65, sectionTop + 30);
+
+    doc
+      .fillColor(gray)
+      .fontSize(10)
+      .text(`Student ID: ${fee.student_id}`, 65, sectionTop + 48);
+
+    // ── Payment Details ─────────────────────────────────────────────────────────
+    const detailTop = sectionTop + 95;
+
+    doc.fillColor(dark).fontSize(13).font('Helvetica-Bold').text('Payment Details', 50, detailTop);
+
+    doc
+      .moveTo(50, detailTop + 20)
+      .lineTo(545, detailTop + 20)
+      .stroke(light);
+
+    const rows: [string, string][] = [
+      ['Fee Category', PAYMENT_CATEGORY_LABELS[fee.category] ?? fee.category],
+      ['Payment Method', PAYMENT_METHOD_LABELS[payment.payment_method] ?? payment.payment_method],
+      ['Payment Date', payment.payment_date],
+      ['Reference Number', payment.reference_number ?? '—'],
+      ['Status', payment.status.toUpperCase()],
+    ];
+    if (payment.notes) {
+      rows.push(['Notes', payment.notes]);
+    }
+
+    let rowY = detailTop + 30;
+    rows.forEach(([label, value], i) => {
+      const bg = i % 2 === 0 ? 'white' : light;
+      doc.rect(50, rowY, 495, 24).fill(bg);
+      doc
+        .fillColor(gray)
+        .fontSize(10)
+        .font('Helvetica')
+        .text(label, 65, rowY + 7);
+      doc
+        .fillColor(dark)
+        .fontSize(10)
+        .text(value, 250, rowY + 7);
+      rowY += 24;
+    });
+
+    // ── Financial Summary ───────────────────────────────────────────────────────
+    const summaryTop = rowY + 30;
+
+    doc
+      .fillColor(dark)
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('Financial Summary', 50, summaryTop);
+
+    doc
+      .moveTo(50, summaryTop + 20)
+      .lineTo(545, summaryTop + 20)
+      .stroke(light);
+
+    const currency = payment.currency || DEFAULT_CURRENCY;
+    const fmt = (n: number) => `${currency} ${n.toLocaleString('en-IN')}`;
+
+    const financialRows: [string, string, boolean][] = [
+      ['Total Fee Amount', fmt(fee.total_amount), false],
+      ['This Installment', fmt(payment.amount), false],
+      ['Total Paid', fmt(fee.amount_paid), false],
+      ['Remaining Balance', fmt(fee.remaining_amount), true],
+    ];
+
+    let finY = summaryTop + 30;
+    financialRows.forEach(([label, value, bold], i) => {
+      const bg = i % 2 === 0 ? 'white' : light;
+      doc.rect(50, finY, 495, 26).fill(bg);
+      doc
+        .fillColor(gray)
+        .fontSize(10)
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .text(label, 65, finY + 8);
+      doc
+        .fillColor(bold ? primary : dark)
+        .fontSize(bold ? 12 : 10)
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .text(value, 250, finY + 8);
+      finY += 26;
+    });
+
+    // ── Footer ──────────────────────────────────────────────────────────────────
+    doc
+      .fillColor(gray)
+      .fontSize(9)
+      .font('Helvetica')
+      .text(
+        'This is a computer-generated receipt and does not require a signature.',
+        50,
+        doc.page.height - 70,
+        { align: 'center', width: 495 },
+      );
+
+    doc
+      .fillColor(gray)
+      .fontSize(9)
+      .text('Defence Overseas  |  Generated by CRM', 50, doc.page.height - 55, {
+        align: 'center',
+        width: 495,
+      });
+
+    doc.end();
+  });
+}
