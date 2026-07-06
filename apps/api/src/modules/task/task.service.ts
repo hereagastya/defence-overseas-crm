@@ -162,6 +162,36 @@ export async function deleteTask(id: string, user: AuthenticatedUser): Promise<v
   });
 }
 
+export async function reopenTask(id: string, user: AuthenticatedUser): Promise<TaskWithUsers> {
+  assertCan(user, Actions.TASKS_UPDATE);
+
+  const existing = await assertTaskVisible(id, user);
+
+  if (existing.status === TaskStatus.CANCELLED) {
+    throw new AppError('TASK_CANCELLED', 409, 'Cannot reopen a cancelled task');
+  }
+
+  if (existing.status !== TaskStatus.COMPLETED) {
+    return existing;
+  }
+
+  const updated = await taskRepo.update(id, {
+    status: TaskStatus.OPEN,
+    completed_at: null,
+  });
+
+  logActivity({
+    actor_id: user.id,
+    entity_type: 'task',
+    entity_id: id,
+    action: 'task_reopened',
+    previous_value: { status: existing.status },
+    new_value: { status: TaskStatus.OPEN },
+  });
+
+  return updated;
+}
+
 export async function completeTask(id: string, user: AuthenticatedUser): Promise<TaskWithUsers> {
   assertCan(user, Actions.TASKS_UPDATE);
 

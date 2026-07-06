@@ -51,6 +51,15 @@ export const deleteTask: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const reopenTask: RequestHandler = async (req, res, next) => {
+  try {
+    const task = await taskService.reopenTask(req.params.id, req.user!);
+    sendSuccess(res, task);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const completeTask: RequestHandler = async (req, res, next) => {
   try {
     const task = await taskService.completeTask(req.params.id, req.user!);

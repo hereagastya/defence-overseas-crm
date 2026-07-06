@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../config/supabase';
 import { AppError } from '../../utils/AppError';
+import { logger } from '../../utils/logger';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -222,7 +223,11 @@ export async function getRevenueReport(
 export async function getCounselorPerformance(): Promise<CounselorPerformanceReport> {
   const [employeesRes, leadsRes, studentsRes, tasksRes, followupsRes, paymentsRes] =
     await Promise.all([
-      supabaseAdmin.from('employees').select('user_id, full_name').eq('is_active', true),
+      // is_active lives on the users table — join to filter active employees
+      supabaseAdmin
+        .from('employees')
+        .select('user_id, full_name, user:users!user_id(is_active)')
+        .is('deleted_at', null),
       supabaseAdmin
         .from('leads')
         .select('assigned_counselor_id, converted_at')
@@ -245,14 +250,18 @@ export async function getCounselorPerformance(): Promise<CounselorPerformanceRep
         .eq('status', 'received'),
     ]);
 
-  if (
-    employeesRes.error ||
-    leadsRes.error ||
-    studentsRes.error ||
-    tasksRes.error ||
-    followupsRes.error ||
-    paymentsRes.error
-  ) {
+  const results = [employeesRes, leadsRes, studentsRes, tasksRes, followupsRes, paymentsRes];
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    logger.error(
+      {
+        code: failed.error.code,
+        message: failed.error.message,
+        details: failed.error.details,
+        hint: failed.error.hint,
+      },
+      'getCounselorPerformance: Supabase query failed',
+    );
     throw new AppError(
       'INTERNAL_SERVER_ERROR',
       500,
@@ -260,14 +269,17 @@ export async function getCounselorPerformance(): Promise<CounselorPerformanceRep
     );
   }
 
-  type EmpRow = { user_id: string; full_name: string };
+  type EmpRow = { user_id: string; full_name: string; user: { is_active: boolean } | null };
   type LeadRow = { assigned_counselor_id: string | null; converted_at: string | null };
   type StudentRow = { assigned_counselor_id: string | null };
   type TaskRow = { created_by: string };
   type FollowupRow = { created_by: string };
   type PaymentRow = { recorded_by: string; amount: number };
 
-  const employees = (employeesRes.data ?? []) as unknown as EmpRow[];
+  // Only include employees whose linked user is active
+  const employees = ((employeesRes.data ?? []) as unknown as EmpRow[]).filter(
+    (e) => e.user?.is_active === true,
+  );
   const leads = (leadsRes.data ?? []) as unknown as LeadRow[];
   const students = (studentsRes.data ?? []) as unknown as StudentRow[];
   const tasks = (tasksRes.data ?? []) as unknown as TaskRow[];

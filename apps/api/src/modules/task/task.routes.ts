@@ -13,5 +13,6 @@ router.get('/:id', taskController.getTask);
 router.patch('/:id', taskController.updateTask);
 router.delete('/:id', requireAdmin, taskController.deleteTask);
 router.patch('/:id/complete', taskController.completeTask);
+router.patch('/:id/reopen', taskController.reopenTask);
 
 export default router;
