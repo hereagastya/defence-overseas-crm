@@ -14,8 +14,10 @@ export interface AuthUser {
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
+  isReady: boolean;
   setAuth: (token: string, user: AuthUser) => void;
   clearAuth: () => void;
+  setReady: (ready: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,8 +25,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
+      isReady: false,
       setAuth: (token, user) => set({ token, user }),
       clearAuth: () => set({ token: null, user: null }),
+      setReady: (ready) => set({ isReady: ready }),
     }),
     {
       name: 'doc-auth',
