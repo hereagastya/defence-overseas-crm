@@ -1,6 +1,6 @@
 /** All API endpoint paths, versioned under /api/v1 */
 
-const V1 = '/api/v1' as const;
+const V1 = '' as const;
 
 export const API_ENDPOINTS = {
   AUTH: {
