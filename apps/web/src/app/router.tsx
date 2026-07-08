@@ -3,6 +3,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { AppShell } from './shell/AppShell';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { EmployeeListPage } from '@/features/employees/EmployeeListPage';
+import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
 
 function FullScreenLoader() {
   return (
@@ -39,6 +41,16 @@ export const router = createBrowserRouter([
         path: '/dashboard',
         element: <DashboardPage />,
         handle: { breadcrumb: 'Dashboard' },
+      },
+      {
+        path: '/employees',
+        element: <EmployeeListPage />,
+        handle: { breadcrumb: 'Employees' },
+      },
+      {
+        path: '/employees/:id',
+        element: <EmployeeDetailPage />,
+        handle: { breadcrumb: 'Employee Details' },
       },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
     ],
