@@ -5,6 +5,8 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { EmployeeListPage } from '@/features/employees/EmployeeListPage';
 import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
+import { LeadListPage } from '@/features/leads/LeadListPage';
+import { LeadDetailPage } from '@/features/leads/LeadDetailPage';
 
 function FullScreenLoader() {
   return (
@@ -51,6 +53,16 @@ export const router = createBrowserRouter([
         path: '/employees/:id',
         element: <EmployeeDetailPage />,
         handle: { breadcrumb: 'Employee Details' },
+      },
+      {
+        path: '/leads',
+        element: <LeadListPage />,
+        handle: { breadcrumb: 'Leads' },
+      },
+      {
+        path: '/leads/:id',
+        element: <LeadDetailPage />,
+        handle: { breadcrumb: 'Lead Details' },
       },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
     ],
