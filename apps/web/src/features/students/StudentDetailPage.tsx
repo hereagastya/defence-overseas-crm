@@ -8,6 +8,8 @@ import {
   CalendarClock,
   CheckSquare,
   ExternalLink,
+  FileText,
+  FolderOpen,
   GitBranch,
   Globe,
   GraduationCap,
@@ -42,6 +44,8 @@ import { StudentTasks } from './StudentTasks';
 import { StudentFollowUps } from './StudentFollowUps';
 import { StudentTimeline } from './StudentTimeline';
 import { StudentActivity } from './StudentActivity';
+import { StudentApplications } from './StudentApplications';
+import { StudentDocuments } from './StudentDocuments';
 
 function formatDate(dateStr: string) {
   return new Intl.DateTimeFormat('en-IN', {
@@ -93,6 +97,8 @@ const TABS = [
   { id: 'notes', label: 'Notes', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'followups', label: 'Follow-ups', icon: CalendarClock },
+  { id: 'applications', label: 'Applications', icon: FolderOpen },
+  { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'timeline', label: 'Timeline', icon: Activity },
   { id: 'activity', label: 'Activity', icon: BookOpen },
 ] as const;
@@ -222,8 +228,12 @@ export function StudentDetailPage() {
     student.assigned_counselor_id === currentUser?.id ||
     student.assigned_counselor_id === null;
 
+  const isCounselor = currentUser?.role === UserRole.COUNSELOR;
+  const canAccessApplicationsAndDocs = isAdmin || isCounselor;
+
   const visibleTabs = TABS.filter((t) => {
     if (t.id === 'activity') return isAdmin;
+    if (t.id === 'applications' || t.id === 'documents') return canAccessApplicationsAndDocs;
     return true;
   });
 
@@ -313,6 +323,12 @@ export function StudentDetailPage() {
         {activeTab === 'notes' && <StudentNotes studentId={student.id} />}
         {activeTab === 'tasks' && <StudentTasks studentId={student.id} />}
         {activeTab === 'followups' && <StudentFollowUps studentId={student.id} />}
+        {activeTab === 'applications' && canAccessApplicationsAndDocs && (
+          <StudentApplications studentId={student.id} />
+        )}
+        {activeTab === 'documents' && canAccessApplicationsAndDocs && (
+          <StudentDocuments studentId={student.id} />
+        )}
         {activeTab === 'timeline' && <StudentTimeline studentId={student.id} />}
         {activeTab === 'activity' && isAdmin && <StudentActivity studentId={student.id} />}
       </div>

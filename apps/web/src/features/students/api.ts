@@ -10,6 +10,11 @@ import type {
   StudentFiltersInput,
   TaskPriority,
   FollowupType,
+  UniversityApplication,
+  CreateApplicationInput,
+  UpdateApplicationInput,
+  Document as StudentDocument,
+  DocumentType,
 } from '@doc/shared';
 
 // ── Local types ────────────────────────────────────────────────────────────────
@@ -103,6 +108,8 @@ export const studentKeys = {
   timeline: (id: string) => [...STUDENTS_KEY, id, 'timeline'] as const,
   tasks: (id: string) => [...STUDENTS_KEY, id, 'tasks'] as const,
   followups: (id: string) => [...STUDENTS_KEY, id, 'followups'] as const,
+  applications: (id: string) => [...STUDENTS_KEY, id, 'applications'] as const,
+  documents: (id: string) => [...STUDENTS_KEY, id, 'documents'] as const,
 };
 
 // ── Students ──────────────────────────────────────────────────────────────────
@@ -344,6 +351,133 @@ export function useCompleteStudentFollowUp(studentId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.followups(studentId) });
+    },
+  });
+}
+
+// ── Applications ──────────────────────────────────────────────────────────────
+
+function appBase(studentId: string) {
+  return API_ENDPOINTS.APPLICATIONS.LIST.replace(':studentId', studentId);
+}
+
+function appItem(studentId: string, id: string) {
+  return API_ENDPOINTS.APPLICATIONS.UPDATE.replace(':studentId', studentId).replace(':id', id);
+}
+
+export function useStudentApplications(studentId: string) {
+  return useQuery({
+    queryKey: studentKeys.applications(studentId),
+    queryFn: () =>
+      apiClient
+        .get<ApiResponse<UniversityApplication[]>>(appBase(studentId))
+        .then((r) => r.data.data),
+    enabled: Boolean(studentId),
+  });
+}
+
+export function useCreateApplication(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateApplicationInput) =>
+      apiClient
+        .post<ApiResponse<UniversityApplication>>(appBase(studentId), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.applications(studentId) });
+    },
+  });
+}
+
+export function useUpdateApplication(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateApplicationInput }) =>
+      apiClient
+        .patch<ApiResponse<UniversityApplication>>(appItem(studentId, id), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.applications(studentId) });
+    },
+  });
+}
+
+export function useDeleteApplication(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(appItem(studentId, id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.applications(studentId) });
+    },
+  });
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+
+function docBase(studentId: string) {
+  return API_ENDPOINTS.DOCUMENTS.LIST.replace(':studentId', studentId);
+}
+
+function docItem(studentId: string, id: string) {
+  return API_ENDPOINTS.DOCUMENTS.DELETE.replace(':studentId', studentId).replace(':id', id);
+}
+
+function docDownload(studentId: string, id: string) {
+  return API_ENDPOINTS.DOCUMENTS.DOWNLOAD.replace(':studentId', studentId).replace(':id', id);
+}
+
+export function useStudentDocuments(studentId: string) {
+  return useQuery({
+    queryKey: studentKeys.documents(studentId),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StudentDocument[]>>(docBase(studentId)).then((r) => r.data.data),
+    enabled: Boolean(studentId),
+  });
+}
+
+export interface UploadDocumentFormInput {
+  document_type: DocumentType;
+  application_id?: string;
+  file: File;
+}
+
+export function useUploadDocument(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ document_type, application_id, file }: UploadDocumentFormInput) => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('document_type', document_type);
+      if (application_id) form.append('application_id', application_id);
+      return apiClient
+        .post<ApiResponse<StudentDocument>>(docBase(studentId), form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.documents(studentId) });
+    },
+  });
+}
+
+export function useDownloadDocument(studentId: string) {
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient
+        .get<
+          ApiResponse<{ url: string; expires_at: string; document: StudentDocument }>
+        >(docDownload(studentId, id))
+        .then((r) => r.data.data),
+  });
+}
+
+export function useDeleteDocument(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(docItem(studentId, id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.documents(studentId) });
     },
   });
 }
