@@ -7,6 +7,8 @@ import { EmployeeListPage } from '@/features/employees/EmployeeListPage';
 import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
 import { LeadListPage } from '@/features/leads/LeadListPage';
 import { LeadDetailPage } from '@/features/leads/LeadDetailPage';
+import { StudentListPage } from '@/features/students/StudentListPage';
+import { StudentDetailPage } from '@/features/students/StudentDetailPage';
 
 function FullScreenLoader() {
   return (
@@ -63,6 +65,16 @@ export const router = createBrowserRouter([
         path: '/leads/:id',
         element: <LeadDetailPage />,
         handle: { breadcrumb: 'Lead Details' },
+      },
+      {
+        path: '/students',
+        element: <StudentListPage />,
+        handle: { breadcrumb: 'Students' },
+      },
+      {
+        path: '/students/:id',
+        element: <StudentDetailPage />,
+        handle: { breadcrumb: 'Student Details' },
       },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
     ],
