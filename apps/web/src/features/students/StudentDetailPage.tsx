@@ -7,6 +7,7 @@ import {
   Calendar,
   CalendarClock,
   CheckSquare,
+  CreditCard,
   ExternalLink,
   FileText,
   FolderOpen,
@@ -46,6 +47,7 @@ import { StudentTimeline } from './StudentTimeline';
 import { StudentActivity } from './StudentActivity';
 import { StudentApplications } from './StudentApplications';
 import { StudentDocuments } from './StudentDocuments';
+import { StudentPayments } from './StudentPayments';
 
 function formatDate(dateStr: string) {
   return new Intl.DateTimeFormat('en-IN', {
@@ -99,6 +101,7 @@ const TABS = [
   { id: 'followups', label: 'Follow-ups', icon: CalendarClock },
   { id: 'applications', label: 'Applications', icon: FolderOpen },
   { id: 'documents', label: 'Documents', icon: FileText },
+  { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'timeline', label: 'Timeline', icon: Activity },
   { id: 'activity', label: 'Activity', icon: BookOpen },
 ] as const;
@@ -233,7 +236,8 @@ export function StudentDetailPage() {
 
   const visibleTabs = TABS.filter((t) => {
     if (t.id === 'activity') return isAdmin;
-    if (t.id === 'applications' || t.id === 'documents') return canAccessApplicationsAndDocs;
+    if (t.id === 'applications' || t.id === 'documents' || t.id === 'payments')
+      return canAccessApplicationsAndDocs;
     return true;
   });
 
@@ -328,6 +332,9 @@ export function StudentDetailPage() {
         )}
         {activeTab === 'documents' && canAccessApplicationsAndDocs && (
           <StudentDocuments studentId={student.id} />
+        )}
+        {activeTab === 'payments' && canAccessApplicationsAndDocs && (
+          <StudentPayments studentId={student.id} />
         )}
         {activeTab === 'timeline' && <StudentTimeline studentId={student.id} />}
         {activeTab === 'activity' && isAdmin && <StudentActivity studentId={student.id} />}

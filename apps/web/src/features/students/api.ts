@@ -15,6 +15,12 @@ import type {
   UpdateApplicationInput,
   Document as StudentDocument,
   DocumentType,
+  StudentFeeWithInstallments,
+  Payment,
+  AssignFeeInput,
+  UpdateFeeInput,
+  RecordInstallmentInput,
+  UpdateInstallmentInput,
 } from '@doc/shared';
 
 // ── Local types ────────────────────────────────────────────────────────────────
@@ -110,6 +116,7 @@ export const studentKeys = {
   followups: (id: string) => [...STUDENTS_KEY, id, 'followups'] as const,
   applications: (id: string) => [...STUDENTS_KEY, id, 'applications'] as const,
   documents: (id: string) => [...STUDENTS_KEY, id, 'documents'] as const,
+  fees: (id: string) => [...STUDENTS_KEY, id, 'fees'] as const,
 };
 
 // ── Students ──────────────────────────────────────────────────────────────────
@@ -479,5 +486,127 @@ export function useDeleteDocument(studentId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.documents(studentId) });
     },
+  });
+}
+
+// ── Fees ──────────────────────────────────────────────────────────────────────
+
+function feeBase(studentId: string) {
+  return API_ENDPOINTS.FEES.LIST.replace(':studentId', studentId);
+}
+
+function feeItem(studentId: string, feeId: string) {
+  return API_ENDPOINTS.FEES.UPDATE.replace(':studentId', studentId).replace(':feeId', feeId);
+}
+
+function paymentBase(studentId: string, feeId: string) {
+  return API_ENDPOINTS.PAYMENTS.RECORD.replace(':studentId', studentId).replace(':feeId', feeId);
+}
+
+function paymentItem(studentId: string, feeId: string, paymentId: string) {
+  return API_ENDPOINTS.PAYMENTS.UPDATE.replace(':studentId', studentId)
+    .replace(':feeId', feeId)
+    .replace(':paymentId', paymentId);
+}
+
+function paymentReceipt(studentId: string, feeId: string, paymentId: string) {
+  return API_ENDPOINTS.PAYMENTS.RECEIPT.replace(':studentId', studentId)
+    .replace(':feeId', feeId)
+    .replace(':paymentId', paymentId);
+}
+
+export function useStudentFees(studentId: string) {
+  return useQuery({
+    queryKey: studentKeys.fees(studentId),
+    queryFn: () =>
+      apiClient
+        .get<ApiResponse<StudentFeeWithInstallments[]>>(feeBase(studentId))
+        .then((r) => r.data.data),
+    enabled: Boolean(studentId),
+  });
+}
+
+export function useAssignFee(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AssignFeeInput) =>
+      apiClient
+        .post<ApiResponse<StudentFeeWithInstallments>>(feeBase(studentId), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+export function useUpdateFee(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ feeId, input }: { feeId: string; input: UpdateFeeInput }) =>
+      apiClient
+        .patch<ApiResponse<StudentFeeWithInstallments>>(feeItem(studentId, feeId), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+export function useDeleteFee(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (feeId: string) => apiClient.delete(feeItem(studentId, feeId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+// ── Payments (installments) ───────────────────────────────────────────────────
+
+export function useRecordPayment(studentId: string, feeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RecordInstallmentInput) =>
+      apiClient
+        .post<ApiResponse<Payment>>(paymentBase(studentId, feeId), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+export function useUpdatePayment(studentId: string, feeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, input }: { paymentId: string; input: UpdateInstallmentInput }) =>
+      apiClient
+        .patch<ApiResponse<Payment>>(paymentItem(studentId, feeId, paymentId), input)
+        .then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+export function useDeletePayment(studentId: string, feeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: string) => apiClient.delete(paymentItem(studentId, feeId, paymentId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKeys.fees(studentId) });
+    },
+  });
+}
+
+export function useDownloadReceipt(studentId: string, feeId: string) {
+  return useMutation({
+    mutationFn: (paymentId: string) =>
+      apiClient
+        .get<
+          ApiResponse<{ url: string; expires_at: string; receipt_number: string }>
+        >(paymentReceipt(studentId, feeId, paymentId))
+        .then((r) => r.data.data),
   });
 }
