@@ -88,6 +88,7 @@ export const API_ENDPOINTS = {
     UPDATE: `${V1}/tasks/:id`,
     DELETE: `${V1}/tasks/:id`,
     COMPLETE: `${V1}/tasks/:id/complete`,
+    REOPEN: `${V1}/tasks/:id/reopen`,
   },
 
   FOLLOW_UPS: {
