@@ -11,6 +11,7 @@ import { StudentListPage } from '@/features/students/StudentListPage';
 import { StudentDetailPage } from '@/features/students/StudentDetailPage';
 import { TasksListPage } from '@/features/tasks/TasksListPage';
 import { FollowUpsListPage } from '@/features/tasks/FollowUpsListPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 
 function FullScreenLoader() {
   return (
@@ -87,6 +88,11 @@ export const router = createBrowserRouter([
         path: '/follow-ups',
         element: <FollowUpsListPage />,
         handle: { breadcrumb: 'Follow-ups' },
+      },
+      {
+        path: '/reports',
+        element: <ReportsPage />,
+        handle: { breadcrumb: 'Reports' },
       },
       { path: '*', element: <Navigate to="/dashboard" replace /> },
     ],
