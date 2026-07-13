@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
+import { formatDate } from '@/lib/format';
 import { useTasks, useDeleteTask, useCompleteTask, useReopenTask } from './api';
 import type { TaskWithUsers } from './api';
 import { CreateTaskDialog } from './CreateTaskDialog';
@@ -68,14 +69,6 @@ const STATUS_VARIANTS: Record<TaskStatus, 'default' | 'secondary' | 'destructive
   [TaskStatus.COMPLETED]: 'default',
   [TaskStatus.CANCELLED]: 'destructive',
 };
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function isDueOverdue(dueDateStr: string, status: string): boolean {
   if (status === TaskStatus.COMPLETED || status === TaskStatus.CANCELLED) return false;
@@ -171,7 +164,6 @@ export function TasksListPage() {
   const isAdmin = user?.role === UserRole.ADMIN;
   const canUpdate = user?.role === UserRole.ADMIN || user?.role === UserRole.COUNSELOR;
 
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('');
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | ''>('');
@@ -202,15 +194,6 @@ export function TasksListPage() {
   const pagination = data?.pagination;
 
   const activeFilterCount = [statusFilter, priorityFilter, overdueOnly].filter(Boolean).length;
-
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setPage(1);
-  }
-
-  const filteredItems = search
-    ? items.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
-    : items;
 
   const columns: ColumnDef<TaskWithUsers>[] = [
     {
@@ -441,15 +424,12 @@ export function TasksListPage() {
       )}
 
       <DataTable
-        data={filteredItems}
+        data={items}
         columns={columns}
         isLoading={isLoading}
-        emptyMessage={search ? `No tasks match "${search}".` : 'No tasks yet.'}
+        emptyMessage="No tasks yet."
         pagination={pagination && pagination.total_pages > 1 ? pagination : undefined}
         onPageChange={setPage}
-        searchValue={search}
-        searchPlaceholder="Search by title…"
-        onSearchChange={handleSearchChange}
         actions={
           !isLoading && pagination ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

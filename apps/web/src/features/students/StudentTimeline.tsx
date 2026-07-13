@@ -2,6 +2,7 @@ import { Activity } from 'lucide-react';
 import { useStudentTimeline } from './api';
 import type { StudentActivityEntry } from './api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/format';
 
 interface Props {
   studentId: string;
@@ -25,16 +26,6 @@ const ACTION_LABELS: Record<string, string> = {
   followup_created: 'Follow-up Scheduled',
   followup_completed: 'Follow-up Completed',
 };
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
 
 function activityDescription(entry: StudentActivityEntry): string | null {
   if (
@@ -78,7 +69,7 @@ function TimelineEntry({ entry }: { entry: StudentActivityEntry }) {
 }
 
 export function StudentTimeline({ studentId }: Props) {
-  const { data: entries, isLoading } = useStudentTimeline(studentId);
+  const { data: entries, isLoading, isError } = useStudentTimeline(studentId);
 
   if (isLoading) {
     return (
@@ -88,6 +79,10 @@ export function StudentTimeline({ studentId }: Props) {
         <Skeleton className="h-14" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load timeline.</p>;
   }
 
   if (!entries?.length) {

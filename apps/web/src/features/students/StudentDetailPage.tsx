@@ -48,16 +48,7 @@ import { StudentActivity } from './StudentActivity';
 import { StudentApplications } from './StudentApplications';
 import { StudentDocuments } from './StudentDocuments';
 import { StudentPayments } from './StudentPayments';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
+import { formatDateTime as formatDate } from '@/lib/format';
 
 function InfoRow({
   icon: Icon,

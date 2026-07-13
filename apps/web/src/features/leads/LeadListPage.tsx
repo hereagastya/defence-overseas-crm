@@ -41,18 +41,11 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { useLeads, useDeleteLead } from './api';
 import { CreateLeadDialog } from './CreateLeadDialog';
+import { formatDate } from '@/lib/format';
 
 const PAGE_SIZE = 25;
 
 type SortableKey = 'created_at' | 'updated_at' | 'full_name' | 'lead_stage' | 'lead_score';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 const STAGE_BADGE_VARIANTS: Record<LeadStage, 'default' | 'secondary' | 'destructive' | 'outline'> =
   {

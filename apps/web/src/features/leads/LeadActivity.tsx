@@ -2,19 +2,10 @@ import { Activity } from 'lucide-react';
 import { useLeadActivity } from './api';
 import type { ActivityEntry } from './api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/format';
 
 interface Props {
   leadId: string;
-}
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -35,8 +26,7 @@ function activityDescription(entry: ActivityEntry): string {
     if (prev && next) return `${base}: ${prev.replace(/_/g, ' ')} → ${next.replace(/_/g, ' ')}`;
   }
   if (entry.action === 'assigned') {
-    const counselorId = String(entry.new_value?.assigned_counselor_id ?? '');
-    if (counselorId) return `${base}`;
+    return base;
   }
   return base;
 }

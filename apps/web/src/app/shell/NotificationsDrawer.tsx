@@ -201,7 +201,8 @@ export function NotificationsDrawer() {
     overdueTaskItems.length + overdueFollowUpItems.length + upcomingFollowUpItems.length;
   const isLoading =
     overdueTasks.isLoading || overdueFollowUps.isLoading || upcomingFollowUps.isLoading;
-  const isEmpty = !isLoading && totalUnread === 0;
+  const isError = overdueTasks.isError || overdueFollowUps.isError || upcomingFollowUps.isError;
+  const isEmpty = !isLoading && !isError && totalUnread === 0;
 
   return (
     <>
@@ -250,6 +251,12 @@ export function NotificationsDrawer() {
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <SectionSkeleton />
+            ) : isError ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-muted-foreground text-center py-16">
+                  Could not load notifications.
+                </p>
+              </div>
             ) : isEmpty ? (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center py-16">

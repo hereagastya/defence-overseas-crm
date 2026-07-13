@@ -28,19 +28,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { formatCurrency } from '@/lib/format';
 
 interface Props {
   studentId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 export function AssignFeeDialog({ studentId, open, onOpenChange }: Props) {

@@ -24,19 +24,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useStudents } from './api';
+import { formatDate } from '@/lib/format';
 
 const PAGE_SIZE = 25;
 const ALL = '__all__';
 
 type SortableKey = 'created_at' | 'updated_at' | 'full_name' | 'student_stage' | 'lead_score';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function StageBadge({ stage }: { stage: StudentStage }) {
   const isClosed = stage === StudentStage.CASE_CLOSED;

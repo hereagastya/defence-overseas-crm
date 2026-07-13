@@ -1,4 +1,5 @@
 import { Download, FileText, Plus, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/format';
 import { DOCUMENT_TYPE_LABELS, UserRole } from '@doc/shared';
 import type { Document as StudentDocument } from '@doc/shared';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -27,14 +28,6 @@ import { UploadDocumentDialog } from './UploadDocumentDialog';
 
 interface Props {
   studentId: string;
-}
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
 }
 
 function formatFileSize(bytes: number) {
@@ -114,7 +107,11 @@ export function StudentDocuments({ studentId }: Props) {
   const isCounselor = user?.role === UserRole.COUNSELOR;
   const canUpload = isAdmin || isCounselor;
 
-  const { data: documents, isLoading: docsLoading } = useStudentDocuments(studentId);
+  const {
+    data: documents,
+    isLoading: docsLoading,
+    isError: docsError,
+  } = useStudentDocuments(studentId);
   const { data: applications } = useStudentApplications(studentId);
   const { mutate: downloadDoc, isPending: isDownloading } = useDownloadDocument(studentId);
   const { mutate: deleteDoc, isPending: isDeleting } = useDeleteDocument(studentId);
@@ -155,6 +152,10 @@ export function StudentDocuments({ studentId }: Props) {
         <Skeleton className="h-20" />
       </div>
     );
+  }
+
+  if (docsError) {
+    return <p className="text-sm text-destructive py-4">Failed to load documents.</p>;
   }
 
   return (

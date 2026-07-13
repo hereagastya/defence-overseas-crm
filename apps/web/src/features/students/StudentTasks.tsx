@@ -3,7 +3,8 @@ import { CheckCircle2, Circle, ClipboardList, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { TaskPriority } from '@doc/shared';
+import { TaskPriority, TASK_PRIORITY_LABELS } from '@doc/shared';
+import { formatDate } from '@/lib/format';
 import { useStudentTasks, useCreateStudentTask, useCompleteStudentTask } from './api';
 import type { StudentTaskWithUsers } from './api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -40,16 +41,10 @@ interface Props {
   studentId: string;
 }
 
-const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-};
-
 const PRIORITY_VARIANTS: Record<string, 'secondary' | 'default' | 'destructive'> = {
-  low: 'secondary',
-  medium: 'default',
-  high: 'destructive',
+  [TaskPriority.LOW]: 'secondary',
+  [TaskPriority.MEDIUM]: 'default',
+  [TaskPriority.HIGH]: 'destructive',
 };
 
 const createTaskSchema = z.object({
@@ -59,14 +54,6 @@ const createTaskSchema = z.object({
   due_date: z.string().min(1, 'Due date is required'),
 });
 type CreateTaskValues = z.infer<typeof createTaskSchema>;
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function TaskCard({
   task,
@@ -101,7 +88,7 @@ function TaskCard({
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge variant={PRIORITY_VARIANTS[task.priority] ?? 'secondary'} className="text-xs">
-              {PRIORITY_LABELS[task.priority] ?? task.priority}
+              {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ?? task.priority}
             </Badge>
             {task.due_date && (
               <span className="text-xs text-muted-foreground">Due {formatDate(task.due_date)}</span>
@@ -120,7 +107,7 @@ function TaskCard({
 
 export function StudentTasks({ studentId }: Props) {
   const { user } = useAuthStore();
-  const { data: tasks, isLoading } = useStudentTasks(studentId);
+  const { data: tasks, isLoading, isError } = useStudentTasks(studentId);
   const { mutate: createTask, isPending: isCreating } = useCreateStudentTask(studentId);
   const { mutate: completeTask, isPending: isCompleting } = useCompleteStudentTask(studentId);
 
@@ -170,6 +157,10 @@ export function StudentTasks({ studentId }: Props) {
         <Skeleton className="h-20" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load tasks.</p>;
   }
 
   const pending = tasks?.filter((t) => t.status !== 'completed') ?? [];
@@ -277,7 +268,7 @@ export function StudentTasks({ studentId }: Props) {
                         <SelectContent>
                           {Object.values(TaskPriority).map((p) => (
                             <SelectItem key={p} value={p}>
-                              {PRIORITY_LABELS[p]}
+                              {TASK_PRIORITY_LABELS[p]}
                             </SelectItem>
                           ))}
                         </SelectContent>

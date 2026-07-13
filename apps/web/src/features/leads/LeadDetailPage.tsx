@@ -41,16 +41,7 @@ import { LeadNotes } from './LeadNotes';
 import { LeadTasks } from './LeadTasks';
 import { LeadFollowUps } from './LeadFollowUps';
 import { LeadActivity } from './LeadActivity';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
+import { formatDateTime as formatDate } from '@/lib/format';
 
 const STAGE_BADGE_VARIANTS: Record<LeadStage, 'default' | 'secondary' | 'destructive' | 'outline'> =
   {

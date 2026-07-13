@@ -5,10 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCounselorPerformanceReport } from './api';
 import { ReportError } from './charts';
 import { exportToCsv } from './utils';
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
-}
+import { formatCurrency } from '@/lib/format';
 
 export function CounselorPerformanceReport() {
   const { data, isLoading, isError } = useCounselorPerformanceReport();

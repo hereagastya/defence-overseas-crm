@@ -3,7 +3,8 @@ import { CalendarClock, CheckCircle2, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FollowupType } from '@doc/shared';
+import { FollowupType, FOLLOWUP_TYPE_LABELS } from '@doc/shared';
+import { formatDateTime } from '@/lib/format';
 import { useStudentFollowUps, useCreateStudentFollowUp, useCompleteStudentFollowUp } from './api';
 import type { StudentFollowupWithUsers } from './api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -49,29 +50,12 @@ interface Props {
   studentId: string;
 }
 
-const FOLLOWUP_TYPE_LABELS: Record<string, string> = {
-  call: 'Call',
-  email: 'Email',
-  meeting: 'Meeting',
-  whatsapp: 'WhatsApp',
-};
-
 const createFollowUpSchema = z.object({
   type: z.nativeEnum(FollowupType),
   scheduled_at: z.string().min(1, 'Scheduled time is required'),
   notes: z.string().optional(),
 });
 type CreateFollowUpValues = z.infer<typeof createFollowUpSchema>;
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
 
 function FollowUpCard({
   followUp,
@@ -88,7 +72,7 @@ function FollowUpCard({
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-xs capitalize">
-              {FOLLOWUP_TYPE_LABELS[followUp.type] ?? followUp.type}
+              {FOLLOWUP_TYPE_LABELS[followUp.type as FollowupType] ?? followUp.type}
             </Badge>
             {isDone ? (
               <Badge
@@ -135,7 +119,7 @@ function FollowUpCard({
 
 export function StudentFollowUps({ studentId }: Props) {
   const { user } = useAuthStore();
-  const { data: followUps, isLoading } = useStudentFollowUps(studentId);
+  const { data: followUps, isLoading, isError } = useStudentFollowUps(studentId);
   const { mutate: createFollowUp, isPending: isCreating } = useCreateStudentFollowUp(studentId);
   const { mutate: completeFollowUp, isPending: isCompleting } =
     useCompleteStudentFollowUp(studentId);
@@ -194,6 +178,10 @@ export function StudentFollowUps({ studentId }: Props) {
         <Skeleton className="h-24" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load follow-ups.</p>;
   }
 
   const pending = followUps?.filter((f) => f.status !== 'completed') ?? [];

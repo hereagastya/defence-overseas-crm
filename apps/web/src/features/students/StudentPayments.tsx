@@ -8,6 +8,7 @@ import {
   Receipt,
   Wallet,
 } from 'lucide-react';
+import { formatDate, formatCurrency } from '@/lib/format';
 import {
   PaymentStatus,
   PAYMENT_STATUS_LABELS,
@@ -57,23 +58,6 @@ interface Props {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatCurrency(amount: number, currency = 'INR') {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—';
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function daysOverdue(dueDateStr: string | null): number | null {
   if (!dueDateStr) return null;
@@ -587,7 +571,7 @@ export function StudentPayments({ studentId }: Props) {
   const isCounselor = user?.role === UserRole.COUNSELOR;
   const canAssign = isAdmin || isCounselor;
 
-  const { data: fees, isLoading } = useStudentFees(studentId);
+  const { data: fees, isLoading, isError } = useStudentFees(studentId);
   const [assignOpen, setAssignOpen] = useState(false);
 
   if (isLoading) {
@@ -602,6 +586,10 @@ export function StudentPayments({ studentId }: Props) {
         <Skeleton className="h-28" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load payment information.</p>;
   }
 
   const hasFees = (fees?.length ?? 0) > 0;

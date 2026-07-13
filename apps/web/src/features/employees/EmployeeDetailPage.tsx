@@ -32,16 +32,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useEmployee, useUpdateEmployee } from './api';
 import { EditEmployeeDialog } from './EditEmployeeDialog';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
+import { formatDateTime as formatDate } from '@/lib/format';
 
 function RoleBadge({ role }: { role: UserRole }) {
   const variant =

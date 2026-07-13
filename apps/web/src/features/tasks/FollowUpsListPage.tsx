@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { useFollowUps, useDeleteFollowUp, useCompleteFollowUp } from './api';
 import type { FollowupWithUsers } from './api';
 import { CreateFollowUpDialog } from './CreateFollowUpDialog';
@@ -55,24 +56,6 @@ const STATUS_VARIANTS: Record<FollowupStatus, 'default' | 'secondary' | 'destruc
     [FollowupStatus.OVERDUE]: 'destructive',
     [FollowupStatus.CANCELLED]: 'secondary',
   };
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function LinkedEntity({ followup }: { followup: FollowupWithUsers }) {
   if (followup.lead_id) {
@@ -149,7 +132,6 @@ export function FollowUpsListPage() {
   const isAdmin = user?.role === UserRole.ADMIN;
   const canUpdate = user?.role === UserRole.ADMIN || user?.role === UserRole.COUNSELOR;
 
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<FollowupStatus | ''>('');
   const [typeFilter, setTypeFilter] = useState<FollowupType | ''>('');
@@ -182,21 +164,6 @@ export function FollowUpsListPage() {
   const pagination = data?.pagination;
 
   const activeFilterCount = [statusFilter, typeFilter, overdueOnly].filter(Boolean).length;
-
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setPage(1);
-  }
-
-  const filteredItems = search
-    ? items.filter(
-        (f) =>
-          FOLLOWUP_TYPE_LABELS[f.type as FollowupType]
-            ?.toLowerCase()
-            .includes(search.toLowerCase()) ||
-          f.assigned_to_name?.toLowerCase().includes(search.toLowerCase()),
-      )
-    : items;
 
   function handleCompleteConfirm() {
     if (!completeTarget) return;
@@ -432,15 +399,12 @@ export function FollowUpsListPage() {
       )}
 
       <DataTable
-        data={filteredItems}
+        data={items}
         columns={columns}
         isLoading={isLoading}
-        emptyMessage={search ? `No follow-ups match "${search}".` : 'No follow-ups yet.'}
+        emptyMessage="No follow-ups yet."
         pagination={pagination && pagination.total_pages > 1 ? pagination : undefined}
         onPageChange={setPage}
-        searchValue={search}
-        searchPlaceholder="Search by type or assignee…"
-        onSearchChange={handleSearchChange}
         actions={
           !isLoading && pagination ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

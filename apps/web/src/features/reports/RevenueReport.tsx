@@ -7,13 +7,10 @@ import { useRevenueReport } from './api';
 import type { ReportFilters } from './api';
 import { StatCard, MonthlyBarChart, ReportError } from './charts';
 import { exportToCsv } from './utils';
+import { formatCurrency } from '@/lib/format';
 
 interface Props {
   filters: ReportFilters;
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 export function RevenueReport({ filters }: Props) {
@@ -84,6 +81,8 @@ export function RevenueReport({ filters }: Props) {
         <CardContent>
           {isLoading ? (
             <Skeleton className="h-32 w-full" />
+          ) : (data?.monthly ?? []).length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">No monthly data</p>
           ) : (
             <MonthlyBarChart data={data?.monthly ?? []} formatValue={formatCurrency} />
           )}

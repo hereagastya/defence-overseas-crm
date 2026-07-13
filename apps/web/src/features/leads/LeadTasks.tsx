@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TaskPriority, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, TaskStatus } from '@doc/shared';
 import { useLeadTasks, useCreateLeadTask, useCompleteTask } from './api';
+import { formatDate } from '@/lib/format';
 import type { TaskWithUsers, CreateTaskForLeadInput } from './api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { toast } from '@/components/ui/use-toast';
@@ -48,14 +49,6 @@ const createTaskFormSchema = z.object({
 });
 
 type CreateTaskFormValues = z.infer<typeof createTaskFormSchema>;
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function priorityVariant(priority: string): 'destructive' | 'default' | 'secondary' {
   if (priority === TaskPriority.HIGH) return 'destructive';
@@ -115,7 +108,7 @@ function TaskRow({
 
 export function LeadTasks({ leadId }: Props) {
   const user = useAuthStore((s) => s.user);
-  const { data: tasks, isLoading } = useLeadTasks(leadId);
+  const { data: tasks, isLoading, isError } = useLeadTasks(leadId);
   const { mutate: createTask, isPending: isCreating } = useCreateLeadTask(leadId);
   const { mutate: completeTask, isPending: isCompleting } = useCompleteTask(leadId);
 
@@ -157,6 +150,10 @@ export function LeadTasks({ leadId }: Props) {
         <Skeleton className="h-12" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load tasks.</p>;
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Plus, LayoutList } from 'lucide-react';
+import { formatDate } from '@/lib/format';
 import { ApplicationStatus, APPLICATION_STATUS_LABELS, UserRole } from '@doc/shared';
 import type { UniversityApplication } from '@doc/shared';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -54,15 +55,6 @@ function StatusBadge({ status }: { status: ApplicationStatus }) {
   );
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—';
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
-
 function RowActions({
   isAdmin,
   canEdit,
@@ -110,7 +102,7 @@ export function StudentApplications({ studentId }: Props) {
   const isCounselor = user?.role === UserRole.COUNSELOR;
   const canEdit = isAdmin || isCounselor;
 
-  const { data: applications, isLoading } = useStudentApplications(studentId);
+  const { data: applications, isLoading, isError } = useStudentApplications(studentId);
   const { mutate: deleteApplication, isPending: isDeleting } = useDeleteApplication(studentId);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -164,6 +156,10 @@ export function StudentApplications({ studentId }: Props) {
       ),
     },
   ];
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load applications.</p>;
+  }
 
   return (
     <div className="space-y-4">

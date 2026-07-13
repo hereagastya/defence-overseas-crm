@@ -2,6 +2,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useStudentActivity } from './api';
 import type { StudentActivityEntry } from './api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/format';
 
 interface Props {
   studentId: string;
@@ -20,16 +21,6 @@ const ACTION_LABELS: Record<string, string> = {
   followup_created: 'Follow-up Scheduled',
   followup_completed: 'Follow-up Completed',
 };
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
 
 function activityDescription(entry: StudentActivityEntry): string | null {
   if (entry.action === 'student_stage_changed' && entry.previous_value && entry.new_value) {
@@ -69,7 +60,7 @@ function ActivityEntry({ entry }: { entry: StudentActivityEntry }) {
 }
 
 export function StudentActivity({ studentId }: Props) {
-  const { data: entries, isLoading } = useStudentActivity(studentId);
+  const { data: entries, isLoading, isError } = useStudentActivity(studentId);
 
   if (isLoading) {
     return (
@@ -79,6 +70,10 @@ export function StudentActivity({ studentId }: Props) {
         <Skeleton className="h-14" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load activity.</p>;
   }
 
   if (!entries?.length) {

@@ -51,6 +51,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { formatDateTime } from '@/lib/format';
 
 interface Props {
   leadId: string;
@@ -68,16 +69,6 @@ const completeFollowUpSchema = z.object({
 
 type CreateFollowUpFormValues = z.infer<typeof createFollowUpFormSchema>;
 type CompleteFollowUpValues = z.infer<typeof completeFollowUpSchema>;
-
-function formatDateTime(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
-}
 
 function statusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === FollowupStatus.COMPLETED) return 'default';
@@ -134,13 +125,12 @@ function FollowUpRow({
 
 export function LeadFollowUps({ leadId }: Props) {
   const user = useAuthStore((s) => s.user);
-  const { data: followUps, isLoading } = useLeadFollowUps(leadId);
+  const { data: followUps, isLoading, isError } = useLeadFollowUps(leadId);
   const { mutate: createFollowUp, isPending: isCreating } = useCreateLeadFollowUp(leadId);
   const { mutate: completeFollowUp, isPending: isCompleting } = useCompleteFollowUp(leadId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<FollowupWithUsers | null>(null);
-  const [outcomeValue, setOutcomeValue] = useState('');
 
   const createForm = useForm<CreateFollowUpFormValues>({
     resolver: zodResolver(createFollowUpFormSchema),
@@ -195,6 +185,10 @@ export function LeadFollowUps({ leadId }: Props) {
         <Skeleton className="h-14" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load follow-ups.</p>;
   }
 
   return (
@@ -348,14 +342,7 @@ export function LeadFollowUps({ leadId }: Props) {
                         disabled={isCompleting}
                         rows={3}
                         className="resize-none"
-                        value={outcomeValue}
-                        onChange={(e) => {
-                          setOutcomeValue(e.target.value);
-                          field.onChange(e);
-                        }}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

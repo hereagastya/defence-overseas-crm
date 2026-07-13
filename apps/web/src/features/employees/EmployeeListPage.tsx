@@ -30,18 +30,11 @@ import { useEmployees, useUpdateEmployee } from './api';
 import { CreateEmployeeDialog } from './CreateEmployeeDialog';
 import { EditEmployeeDialog } from './EditEmployeeDialog';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
+import { formatDate } from '@/lib/format';
 
 const PAGE_SIZE = 10;
 
 type SortableKey = 'full_name' | 'email' | 'role' | 'created_at';
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
 
 function RoleBadge({ role }: { role: UserRole }) {
   const variant =

@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/format';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +25,6 @@ import {
 
 interface Props {
   studentId: string;
-}
-
-function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
 }
 
 function NoteCard({
@@ -50,7 +41,7 @@ function NoteCard({
       <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {note.author_name ?? 'Unknown'} &middot; {formatDate(note.created_at)}
+          {note.author_name ?? 'Unknown'} &middot; {formatDateTime(note.created_at)}
         </p>
         <div className="flex items-center gap-1">
           <Button
@@ -78,7 +69,7 @@ function NoteCard({
 }
 
 export function StudentNotes({ studentId }: Props) {
-  const { data: notes, isLoading } = useStudentNotes(studentId);
+  const { data: notes, isLoading, isError } = useStudentNotes(studentId);
   const { mutate: addNote, isPending: isAdding } = useAddStudentNote(studentId);
   const { mutate: updateNote, isPending: isUpdating } = useUpdateStudentNote(studentId);
   const { mutate: deleteNote, isPending: isDeleting } = useDeleteStudentNote(studentId);
@@ -138,6 +129,10 @@ export function StudentNotes({ studentId }: Props) {
         <Skeleton className="h-20" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-destructive py-4">Failed to load notes.</p>;
   }
 
   return (
