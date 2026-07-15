@@ -11,7 +11,7 @@
     "dev:api": "pnpm --filter=@doc/api dev",
     "dev:web": "pnpm --filter=@doc/web dev",
     "build:shared": "pnpm --filter=@doc/shared build",
-    "build": "pnpm run build:shared && pnpm --filter=apps/* build",
+    "build": "pnpm run build:shared && pnpm --filter=@doc/web build",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "format": "prettier --write .",
