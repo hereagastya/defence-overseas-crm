@@ -14,6 +14,7 @@ export default defineConfig({
       '@hooks': path.resolve(__dirname, './src/hooks'),
       '@store': path.resolve(__dirname, './src/store'),
       '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@doc/shared': path.resolve(__dirname, '../../packages/shared/src'),
     },
   },
   server: {
