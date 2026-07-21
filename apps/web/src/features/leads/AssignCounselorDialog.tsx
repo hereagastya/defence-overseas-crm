@@ -78,7 +78,7 @@ export function AssignCounselorDialog({ lead, open, onOpenChange }: Props) {
             </SelectTrigger>
             <SelectContent>
               {activeEmployees.map((emp) => (
-                <SelectItem key={emp.id} value={emp.id}>
+                <SelectItem key={emp.id} value={emp.user_id}>
                   {emp.full_name}
                 </SelectItem>
               ))}
