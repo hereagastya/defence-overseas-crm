@@ -57,3 +57,36 @@ export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
 export type UpdateLeadStageInput = z.infer<typeof updateLeadStageSchema>;
 export type ConvertLeadInput = z.infer<typeof convertLeadSchema>;
 export type LeadFiltersInput = z.infer<typeof leadFiltersSchema>;
+
+// ── Lead Import ───────────────────────────────────────────────────────────────
+
+export const importLeadsSchema = z.object({
+  rows: z
+    .array(z.record(z.string(), z.unknown()))
+    .min(1, 'File contains no data rows')
+    .max(1000, 'Cannot import more than 1000 rows at once'),
+});
+
+export type ImportLeadsInput = z.infer<typeof importLeadsSchema>;
+
+export type ImportLeadRow = {
+  full_name: string;
+  phone: string;
+  email?: string;
+  country?: string;
+  nationality?: string;
+  course?: string;
+  passport_number?: string;
+  lead_source?: string;
+  lead_score?: string;
+  lead_stage?: string;
+  notes?: string;
+};
+
+export type ImportLeadsSummary = {
+  total: number;
+  imported: number;
+  skipped: number;
+  duplicates: number;
+  errors: Array<{ row: number; reason: string }>;
+};

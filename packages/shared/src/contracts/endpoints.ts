@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   LEADS: {
     LIST: `${V1}/leads`,
     CREATE: `${V1}/leads`,
+    IMPORT: `${V1}/leads/import`,
     GET: `${V1}/leads/:id`,
     UPDATE: `${V1}/leads/:id`,
     DELETE: `${V1}/leads/:id`,

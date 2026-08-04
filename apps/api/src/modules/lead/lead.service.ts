@@ -5,7 +5,7 @@ import { logActivity } from '../../database/activityLogger';
 import { assertCan } from '../../permissions/policies';
 import { Actions } from '../../permissions/roles';
 import * as leadRepo from './lead.repository';
-import { LeadStage, UserRole } from '@doc/shared';
+import { LeadStage, LeadSource, LeadScore, UserRole, createLeadSchema } from '@doc/shared';
 import type {
   LeadWithCounselor,
   CreateLeadInput,
@@ -13,6 +13,7 @@ import type {
   UpdateLeadStageInput,
   ConvertLeadInput,
   LeadFiltersInput,
+  ImportLeadsSummary,
 } from '@doc/shared';
 import type { AuthenticatedUser } from '../../types/api.types';
 import type { ActivityEntry, NoteEntry } from './lead.repository';
@@ -390,7 +391,172 @@ export async function getLeadActivity(
   return leadRepo.findActivity(id);
 }
 
+export async function importLeads(
+  rows: Record<string, unknown>[],
+  user: AuthenticatedUser,
+): Promise<ImportLeadsSummary> {
+  assertCan(user, Actions.LEADS_IMPORT);
+
+  const total = rows.length;
+  const errors: ImportLeadsSummary['errors'] = [];
+  let duplicates = 0;
+
+  // 1. Normalize and pre-validate phones, collect candidate rows
+  type CandidateRow = {
+    originalIndex: number;
+    input: CreateLeadInput;
+  };
+
+  const candidates: CandidateRow[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const raw = rows[i];
+    const rowNum = i + 1;
+
+    const rawPhone = String(raw.phone ?? raw.Phone ?? raw.mobile ?? raw.Mobile ?? '').trim();
+    if (!rawPhone) {
+      errors.push({ row: rowNum, reason: 'Phone number is required' });
+      continue;
+    }
+
+    const phone = normalizePhone(rawPhone);
+
+    const fullName = String(
+      raw.full_name ?? raw['Full Name'] ?? raw['full name'] ?? raw.name ?? raw.Name ?? '',
+    ).trim();
+
+    if (!fullName) {
+      errors.push({ row: rowNum, reason: 'Full name is required' });
+      continue;
+    }
+
+    const rawSource = String(
+      raw.lead_source ?? raw['Lead Source'] ?? raw.source ?? raw.Source ?? '',
+    )
+      .toLowerCase()
+      .trim();
+    const lead_source = Object.values(LeadSource).includes(rawSource as LeadSource)
+      ? (rawSource as LeadSource)
+      : LeadSource.MANUAL;
+
+    const rawScore = String(raw.lead_score ?? raw.score ?? raw.Score ?? '')
+      .toLowerCase()
+      .trim();
+    const lead_score = Object.values(LeadScore).includes(rawScore as LeadScore)
+      ? (rawScore as LeadScore)
+      : LeadScore.COLD;
+
+    const rawStage = String(raw.lead_stage ?? '')
+      .toLowerCase()
+      .trim();
+    const lead_stage = Object.values(LeadStage).includes(rawStage as LeadStage)
+      ? (rawStage as LeadStage)
+      : LeadStage.NEW_INQUIRY;
+
+    const email =
+      String(raw.email ?? raw.Email ?? raw['Email ID'] ?? raw['email id'] ?? '').trim() ||
+      undefined;
+    const country = String(raw.country ?? raw.Country ?? '').trim() || undefined;
+    const nationality = String(raw.nationality ?? raw.Nationality ?? '').trim() || undefined;
+    const course =
+      String(raw.course ?? raw.Course ?? raw.program ?? raw.Program ?? '').trim() || undefined;
+    const passport_number =
+      String(raw.passport_number ?? raw.passport ?? raw.Passport ?? '').trim() || undefined;
+    const notes =
+      String(
+        raw.notes ?? raw.Notes ?? raw.remarks ?? raw.Remarks ?? raw.comment ?? raw.Comment ?? '',
+      ).trim() || undefined;
+
+    const parsed = createLeadSchema.safeParse({
+      full_name: fullName,
+      phone,
+      email: email || '',
+      country,
+      nationality,
+      course,
+      passport_number,
+      lead_source,
+      lead_score,
+      lead_stage,
+      notes,
+      assigned_counselor_id: user.id,
+    });
+
+    if (!parsed.success) {
+      errors.push({ row: rowNum, reason: parsed.error.errors[0].message });
+      continue;
+    }
+
+    candidates.push({ originalIndex: i, input: parsed.data });
+  }
+
+  if (candidates.length === 0) {
+    return { total, imported: 0, skipped: total, duplicates: 0, errors };
+  }
+
+  // 2. Bulk-check existing phones to detect duplicates in one query
+  const candidatePhones = candidates.map((c) => c.input.phone);
+  const { data: existingRows } = await supabaseAdmin
+    .from('leads')
+    .select('phone')
+    .in('phone', candidatePhones)
+    .is('deleted_at', null);
+
+  const existingPhones = new Set((existingRows ?? []).map((r: { phone: string }) => r.phone));
+
+  // 3. Split candidates into duplicates and toInsert
+  const toInsert: CreateLeadInput[] = [];
+  for (const c of candidates) {
+    if (existingPhones.has(c.input.phone)) {
+      duplicates++;
+    } else {
+      toInsert.push(c.input);
+    }
+  }
+
+  // 4. Batch insert — use Promise.allSettled so one bad row doesn't abort the rest
+  let imported = 0;
+  if (toInsert.length > 0) {
+    const results = await Promise.allSettled(toInsert.map((row) => leadRepo.create(row)));
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        imported++;
+      } else {
+        // Unexpected insert failure (e.g. race-condition duplicate)
+        duplicates++;
+      }
+    }
+
+    // Activity log — one entry for the whole batch
+    if (imported > 0) {
+      logActivity({
+        actor_id: user.id,
+        entity_type: 'lead',
+        entity_id: user.id,
+        action: 'bulk_imported',
+        new_value: { imported, total, source: 'spreadsheet_import' },
+      });
+    }
+  }
+
+  const skipped = total - imported;
+  return { total, imported, skipped, duplicates, errors };
+}
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
+
+function normalizePhone(raw: string): string {
+  // Strip spaces, dashes, dots, parentheses
+  let p = raw.replace(/[\s\-.()]/g, '');
+  // Replace leading 00 with +
+  if (p.startsWith('00')) p = '+' + p.slice(2);
+  // Bare 10-digit Indian mobile (starts 6-9)
+  if (/^[6-9]\d{9}$/.test(p)) return '+91' + p;
+  // 12-digit with 91 prefix but no + (919XXXXXXXXX)
+  if (/^91[6-9]\d{9}$/.test(p)) return '+' + p;
+  return p;
+}
 
 async function assertCounselorExists(counselorId: string): Promise<void> {
   const { data, error } = await supabaseAdmin

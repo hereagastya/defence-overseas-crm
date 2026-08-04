@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, MoreHorizontal, Plus, RefreshCw, Trash2, Users2 } from 'lucide-react';
+import { Filter, MoreHorizontal, Plus, RefreshCw, Trash2, Upload, Users2 } from 'lucide-react';
 import {
   UserRole,
   LeadStage,
@@ -41,6 +41,7 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { useLeads, useDeleteLead } from './api';
 import { CreateLeadDialog } from './CreateLeadDialog';
+import { ImportLeadsDialog } from './ImportLeadsDialog';
 import { formatDate } from '@/lib/format';
 
 const PAGE_SIZE = 25;
@@ -134,6 +135,7 @@ export function LeadListPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LeadWithCounselor | null>(null);
 
   const filters = useMemo<LeadFiltersInput>(
@@ -279,6 +281,12 @@ export function LeadListPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+          )}
           <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Lead
@@ -366,6 +374,7 @@ export function LeadListPage() {
       />
 
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {isAdmin && <ImportLeadsDialog open={importOpen} onOpenChange={setImportOpen} />}
 
       {isAdmin && (
         <AlertDialog

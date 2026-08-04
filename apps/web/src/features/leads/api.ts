@@ -12,6 +12,8 @@ import type {
   LeadFiltersInput,
   TaskPriority,
   FollowupType,
+  ImportLeadRow,
+  ImportLeadsSummary,
 } from '@doc/shared';
 
 // ── Local types (mirror backend repository shapes) ────────────────────────────
@@ -211,6 +213,21 @@ export function useConvertLead() {
         .then((r) => r.data.data),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: leadKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
+
+// ── Import ────────────────────────────────────────────────────────────────────
+
+export function useImportLeads() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: ImportLeadRow[]) =>
+      apiClient
+        .post<ApiResponse<ImportLeadsSummary>>(API_ENDPOINTS.LEADS.IMPORT, { rows })
+        .then((r) => r.data.data),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_KEY });
     },
   });

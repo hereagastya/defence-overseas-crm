@@ -9,6 +9,7 @@ export const Actions = {
   LEADS_DELETE: 'leads:delete',
   LEADS_ASSIGN: 'leads:assign',
   LEADS_CONVERT: 'leads:convert',
+  LEADS_IMPORT: 'leads:import',
 
   // Students
   STUDENTS_READ: 'students:read',

@@ -7,6 +7,7 @@ import {
   updateLeadStageSchema,
   assignLeadSchema,
   convertLeadSchema,
+  importLeadsSchema,
 } from '@doc/shared';
 import * as leadService from './lead.service';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../../utils/apiResponse';
@@ -103,6 +104,16 @@ export const addLeadNote: RequestHandler = async (req, res, next) => {
     const { content } = z.object({ content: z.string().min(1).max(5000) }).parse(req.body);
     const note = await leadService.addLeadNote(req.params.id, content, req.user!);
     sendCreated(res, note);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const importLeads: RequestHandler = async (req, res, next) => {
+  try {
+    const { rows } = importLeadsSchema.parse(req.body);
+    const summary = await leadService.importLeads(rows, req.user!);
+    sendSuccess(res, summary);
   } catch (err) {
     next(err);
   }

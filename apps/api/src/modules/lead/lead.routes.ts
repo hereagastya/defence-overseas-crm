@@ -11,6 +11,8 @@ router.use(authenticate);
 // ── Collection ───────────────────────────────────────────────────────────────
 router.get('/', leadController.listLeads);
 router.post('/', leadController.createLead);
+// import must be registered before /:id wildcards so 'import' is not treated as an ID
+router.post('/import', requireAdmin, leadController.importLeads);
 
 // ── Member — core CRUD ────────────────────────────────────────────────────────
 router.get('/:id', leadController.getLead);
