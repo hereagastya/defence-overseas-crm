@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
-import { FileSpreadsheet, Upload, X, CheckCircle2, AlertCircle, SkipForward } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle2, FileSpreadsheet, SkipForward, Upload, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ImportLeadRow, ImportLeadsSummary } from '@doc/shared';
-import { useImportLeads } from './api';
+import { useImportLeads, LEADS_KEY } from './api';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +19,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// ── Session persistence ───────────────────────────────────────────────────────
+
+const SESSION_KEY = 'doc-lead-import-session';
+const SESSION_STALE_MS = 10 * 60 * 1000; // 10 min
+
+type StoredSession =
+  | { phase: 'importing'; total: number; startedAt: number }
+  | { phase: 'complete'; summary: ImportLeadsSummary };
+
+function readSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StoredSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(s: StoredSession) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -38,7 +65,6 @@ const LEAD_FIELD_OPTIONS = [
 
 type LeadFieldValue = (typeof LEAD_FIELD_OPTIONS)[number]['value'];
 
-// Case-insensitive lookup: spreadsheet column header → lead field
 const FIELD_ALIASES: Record<string, LeadFieldValue> = {
   name: 'full_name',
   'full name': 'full_name',
@@ -98,7 +124,7 @@ function autoMap(headers: string[]): Record<string, LeadFieldValue> {
   return result;
 }
 
-// ── File parsing (lazy-loads xlsx) ────────────────────────────────────────────
+// ── File parsing ──────────────────────────────────────────────────────────────
 
 async function parseSpreadsheet(
   file: File,
@@ -111,7 +137,6 @@ async function parseSpreadsheet(
   const sheet = workbook.Sheets[sheetName];
   const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
   if (json.length === 0) throw new Error('Spreadsheet has no data rows');
-
   const headers = Object.keys(json[0]);
   const rows = json.map((r) => {
     const row: Record<string, string> = {};
@@ -130,7 +155,6 @@ function buildImportRows(
   return rawRows.map((raw) => {
     const lead: Record<string, string> = {};
     const noteParts: string[] = [];
-
     for (const [col, field] of Object.entries(mapping)) {
       if (field === 'ignore') continue;
       const value = (raw[col] ?? '').trim();
@@ -141,7 +165,6 @@ function buildImportRows(
         lead[field] = value;
       }
     }
-
     if (noteParts.length > 0) lead.notes = noteParts.join('\n');
     return lead as ImportLeadRow;
   });
@@ -154,10 +177,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'upload' | 'mapping' | 'result';
+type Step = 'upload' | 'mapping' | 'importing' | 'result' | 'interrupted';
 
 export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -167,11 +193,65 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ImportLeadsSummary | null>(null);
+  const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [interruptedTotal, setInterruptedTotal] = useState(0);
 
-  const { mutate: importLeads, isPending: isImporting } = useImportLeads();
+  const { mutate: importLeads } = useImportLeads();
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // On open: detect an import that was interrupted by a page refresh or another tab
+  useEffect(() => {
+    if (!open) return;
+    const session = readSession();
+    if (!session || session.phase !== 'importing') return;
+    const age = Date.now() - session.startedAt;
+    if (age < SESSION_STALE_MS) {
+      setInterruptedTotal(session.total);
+      setStep('interrupted');
+    } else {
+      clearSession();
+    }
+  }, [open]);
+
+  // Simulated progress animation while the HTTP request is in flight
+  useEffect(() => {
+    if (step !== 'importing') {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      return;
+    }
+
+    setProgress(0);
+    const estimatedMs = Math.max(4000, rawRows.length * 30);
+    const tickMs = 150;
+    const CAP = 83; // hold here until the server responds
+
+    progressTimerRef.current = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + (CAP / estimatedMs) * tickMs;
+        return Math.min(next, CAP);
+      });
+    }, tickMs);
+
+    return () => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    };
+  }, [step, rawRows.length]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   function resetDialog() {
     setStep('upload');
@@ -181,24 +261,29 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setMapping({});
     setParseError(null);
     setSummary(null);
+    setProgress(0);
+    setInterruptedTotal(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  function handleClose(open: boolean) {
-    if (!open) resetDialog();
-    onOpenChange(open);
+  // Block closing the dialog while an import is in flight
+  function handleClose(nextOpen: boolean) {
+    if (!nextOpen && step === 'importing') return;
+    if (!nextOpen) {
+      clearSession();
+      resetDialog();
+    }
+    onOpenChange(nextOpen);
   }
 
   async function handleFileSelected(selected: File) {
-    if (!selected) return;
     setFile(selected);
     setParseError(null);
     setIsParsing(true);
     try {
       const { headers: h, rows: r } = await parseSpreadsheet(selected);
-      const capped = r.slice(0, MAX_ROWS);
       setHeaders(h);
-      setRawRows(capped);
+      setRawRows(r.slice(0, MAX_ROWS));
       setMapping(autoMap(h));
       setStep('mapping');
     } catch (err) {
@@ -216,6 +301,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   }
 
   function handleImport() {
+    if (step === 'importing') return; // idempotency guard
     const importRows = buildImportRows(rawRows, mapping);
     if (importRows.length === 0) {
       toast({
@@ -224,25 +310,61 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       });
       return;
     }
+
+    writeSession({ phase: 'importing', total: rawRows.length, startedAt: Date.now() });
+    setStep('importing');
+
     importLeads(importRows, {
       onSuccess: (result) => {
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        clearSession();
+        setProgress(100);
         setSummary(result);
-        setStep('result');
+        // Brief pause at 100% so the bar visually completes before the step changes
+        transitionTimerRef.current = setTimeout(() => setStep('result'), 400);
       },
-      onError: () => {
-        toast({
-          title: 'Import failed',
-          description: 'Server error. Please try again.',
-          variant: 'destructive',
-        });
+      onError: (error: unknown) => {
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        clearSession();
+
+        // Only say "Import failed" when the server explicitly rejected the request.
+        // Network timeouts and connection errors get a softer message.
+        const isServerRejection =
+          error !== null &&
+          typeof error === 'object' &&
+          'response' in error &&
+          (error as { response?: unknown }).response != null;
+
+        if (isServerRejection) {
+          toast({
+            title: 'Import failed',
+            description: 'The server rejected the request. Check the file and try again.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Connection interrupted',
+            description:
+              'The import may have partially completed. Refresh the leads list to check, then re-import if needed — duplicates are skipped automatically.',
+            variant: 'destructive',
+          });
+        }
+
+        setStep('mapping'); // return to mapping so the user can retry
       },
     });
   }
 
-  const mappedRequiredFields = useCallback(() => {
-    const values = Object.values(mapping);
-    return values.includes('full_name') && values.includes('phone');
-  }, [mapping]);
+  const canImport =
+    Object.values(mapping).includes('full_name') && Object.values(mapping).includes('phone');
+
+  const simulatedCount = Math.floor((progress / 100) * rawRows.length);
 
   // ── Step: Upload ──────────────────────────────────────────────────────────
 
@@ -293,7 +415,11 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
               <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground truncate flex-1">{file.name}</p>
-              <button onClick={resetDialog} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={resetDialog}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Remove file"
+              >
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -325,12 +451,10 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   function renderMapping() {
     const previewRows = rawRows.slice(0, PREVIEW_ROWS);
     const mappedHeaders = headers.filter((h) => mapping[h] !== 'ignore');
-    const canImport = mappedRequiredFields();
 
     return (
       <>
         <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
-          {/* Row count banner */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
               <strong className="text-foreground">{rawRows.length}</strong> rows detected
@@ -341,7 +465,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             <span className="text-xs text-muted-foreground">Source: {file?.name}</span>
           </div>
 
-          {/* Column mapping table */}
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
               Column Mapping
@@ -395,7 +518,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             )}
           </div>
 
-          {/* Data preview */}
           {mappedHeaders.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
@@ -446,8 +568,94 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => setStep('upload')}>
             ← Back
           </Button>
-          <Button onClick={handleImport} disabled={!canImport || isImporting}>
-            {isImporting ? 'Importing…' : `Import ${rawRows.length} rows`}
+          <Button onClick={handleImport} disabled={!canImport}>
+            Import {rawRows.length} rows
+          </Button>
+        </DialogFooter>
+      </>
+    );
+  }
+
+  // ── Step: Importing ───────────────────────────────────────────────────────
+
+  function renderImporting() {
+    return (
+      <>
+        <div className="py-8 space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">Importing leads…</span>
+              <span className="tabular-nums text-muted-foreground">{Math.round(progress)}%</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              {simulatedCount} / {rawRows.length} rows processed
+            </p>
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Please keep this window open until the import finishes.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button disabled>Importing…</Button>
+        </DialogFooter>
+      </>
+    );
+  }
+
+  // ── Step: Interrupted ─────────────────────────────────────────────────────
+
+  function renderInterrupted() {
+    return (
+      <>
+        <div className="py-4 space-y-4">
+          <div className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                Import was interrupted
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-500">
+                An import of {interruptedTotal} leads was in progress when this session was
+                interrupted. Some leads may already have been saved.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Check the leads list to confirm which leads were imported before starting a new import.
+            Re-importing the same file is safe — duplicate phone numbers are skipped automatically.
+          </p>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              clearSession();
+              queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+              handleClose(false);
+            }}
+          >
+            Check Leads List
+          </Button>
+          <Button
+            onClick={() => {
+              clearSession();
+              resetDialog();
+            }}
+          >
+            Start New Import
           </Button>
         </DialogFooter>
       </>
@@ -459,22 +667,33 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   function renderResult() {
     if (!summary) return null;
 
+    const invalidRows = summary.errors.length;
+    const allClean = summary.imported > 0 && summary.duplicates === 0 && invalidRows === 0;
+
     return (
       <>
         <div className="py-4 space-y-5">
-          {/* Summary stat cards */}
           <div className="grid grid-cols-4 gap-3">
             <StatCard label="Total" value={summary.total} icon="total" />
             <StatCard label="Imported" value={summary.imported} icon="success" />
             <StatCard label="Duplicates" value={summary.duplicates} icon="duplicate" />
-            <StatCard label="Errors" value={summary.errors.length} icon="error" />
+            <StatCard label="Invalid" value={invalidRows} icon="error" />
           </div>
 
-          {/* Error list */}
-          {summary.errors.length > 0 && (
+          {allClean && (
+            <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+              <p className="text-sm text-green-700 dark:text-green-400">
+                All {summary.imported} leads imported successfully. The leads list has been
+                refreshed.
+              </p>
+            </div>
+          )}
+
+          {invalidRows > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                Skipped Rows ({summary.errors.length})
+                Skipped rows ({invalidRows})
               </p>
               <div className="rounded-md border max-h-48 overflow-y-auto">
                 {summary.errors.map((e, i) => (
@@ -491,15 +710,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               </div>
             </div>
           )}
-
-          {summary.imported > 0 && summary.errors.length === 0 && (
-            <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-              <p className="text-sm text-green-700 dark:text-green-400">
-                All {summary.imported} leads imported successfully.
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
@@ -508,7 +718,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               handleClose(false);
               toast({
                 title: 'Import complete',
-                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported.`,
+                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported${summary.duplicates > 0 ? `, ${summary.duplicates} duplicate${summary.duplicates !== 1 ? 's' : ''} skipped` : ''}.`,
               });
             }}
           >
@@ -519,12 +729,14 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     );
   }
 
-  // ── Title ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   const titles: Record<Step, string> = {
     upload: 'Import Leads',
     mapping: 'Map Columns & Preview',
+    importing: 'Importing…',
     result: 'Import Complete',
+    interrupted: 'Import Interrupted',
   };
 
   return (
@@ -539,13 +751,15 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
 
         {step === 'upload' && renderUpload()}
         {step === 'mapping' && renderMapping()}
+        {step === 'importing' && renderImporting()}
         {step === 'result' && renderResult()}
+        {step === 'interrupted' && renderInterrupted()}
       </DialogContent>
     </Dialog>
   );
 }
 
-// ── StatCard helper ───────────────────────────────────────────────────────────
+// ── StatCard ──────────────────────────────────────────────────────────────────
 
 type StatIcon = 'total' | 'success' | 'duplicate' | 'error';
 
