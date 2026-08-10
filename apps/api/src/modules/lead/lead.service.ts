@@ -446,13 +446,6 @@ export async function importLeads(
       ? (rawScore as LeadScore)
       : LeadScore.COLD;
 
-    const rawStage = String(raw.lead_stage ?? '')
-      .toLowerCase()
-      .trim();
-    const lead_stage = Object.values(LeadStage).includes(rawStage as LeadStage)
-      ? (rawStage as LeadStage)
-      : LeadStage.NEW_INQUIRY;
-
     const email =
       String(raw.email ?? raw.Email ?? raw['Email ID'] ?? raw['email id'] ?? '').trim() ||
       undefined;
@@ -477,7 +470,7 @@ export async function importLeads(
       passport_number,
       lead_source,
       lead_score,
-      lead_stage,
+      lead_stage: LeadStage.NEW_INQUIRY, // always New — never import legacy stage
       notes,
       assigned_counselor_id: user.id,
     });
@@ -504,27 +497,36 @@ export async function importLeads(
 
   const existingPhones = new Set((existingRows ?? []).map((r: { phone: string }) => r.phone));
 
-  // 3. Split candidates into duplicates and toInsert
-  const toInsert: CreateLeadInput[] = [];
+  // 3. Split candidates: known phone duplicates are skipped immediately
+  type InsertCandidate = { input: CreateLeadInput; originalIndex: number };
+  const toInsert: InsertCandidate[] = [];
   for (const c of candidates) {
     if (existingPhones.has(c.input.phone)) {
       duplicates++;
     } else {
-      toInsert.push(c.input);
+      toInsert.push(c);
     }
   }
 
-  // 4. Batch insert — use Promise.allSettled so one bad row doesn't abort the rest
+  // 4. Batch insert — Promise.allSettled so one failure doesn't abort the rest
   let imported = 0;
   if (toInsert.length > 0) {
-    const results = await Promise.allSettled(toInsert.map((row) => leadRepo.create(row)));
+    const results = await Promise.allSettled(toInsert.map(({ input }) => leadRepo.create(input)));
 
-    for (const result of results) {
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
       if (result.status === 'fulfilled') {
         imported++;
       } else {
-        // Unexpected insert failure (e.g. race-condition duplicate)
-        duplicates++;
+        const err = result.reason;
+        // 409 CONFLICT = race-condition phone duplicate that slipped past the bulk check
+        if (err instanceof AppError && err.statusCode === 409) {
+          duplicates++;
+        } else {
+          // Genuine insert failure — report as invalid row, not a duplicate
+          const rowNum = toInsert[i].originalIndex + 1;
+          errors.push({ row: rowNum, reason: 'Failed to save — database error' });
+        }
       }
     }
 

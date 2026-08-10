@@ -333,8 +333,11 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         }
         clearSession();
 
-        // Only say "Import failed" when the server explicitly rejected the request.
-        // Network timeouts and connection errors get a softer message.
+        // A server rejection (4xx/5xx with a response body) is an explicit failure.
+        // Network timeouts, dropped connections, and client-side aborts have no
+        // `.response` — the server may have continued processing and saved some rows,
+        // so we must not call it "Import failed". Instead show the interrupted screen
+        // and refresh the leads list so the user sees whatever was actually saved.
         const isServerRejection =
           error !== null &&
           typeof error === 'object' &&
@@ -347,16 +350,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             description: 'The server rejected the request. Check the file and try again.',
             variant: 'destructive',
           });
+          setStep('mapping');
         } else {
-          toast({
-            title: 'Connection interrupted',
-            description:
-              'The import may have partially completed. Refresh the leads list to check, then re-import if needed — duplicates are skipped automatically.',
-            variant: 'destructive',
-          });
+          // Refresh the list — some rows may have been inserted before the connection dropped
+          queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+          setInterruptedTotal(rawRows.length);
+          setStep('interrupted');
         }
-
-        setStep('mapping'); // return to mapping so the user can retry
       },
     });
   }
@@ -676,7 +676,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-4 gap-3">
             <StatCard label="Total" value={summary.total} icon="total" />
             <StatCard label="Imported" value={summary.imported} icon="success" />
-            <StatCard label="Duplicates" value={summary.duplicates} icon="duplicate" />
+            <StatCard label="Existing" value={summary.duplicates} icon="duplicate" />
             <StatCard label="Invalid" value={invalidRows} icon="error" />
           </div>
 
@@ -684,8 +684,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2">
               <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
               <p className="text-sm text-green-700 dark:text-green-400">
-                All {summary.imported} leads imported successfully. The leads list has been
-                refreshed.
+                All {summary.imported} leads imported as <strong>New</strong>. The leads list has
+                been refreshed.
               </p>
             </div>
           )}
@@ -718,7 +718,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               handleClose(false);
               toast({
                 title: 'Import complete',
-                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported${summary.duplicates > 0 ? `, ${summary.duplicates} duplicate${summary.duplicates !== 1 ? 's' : ''} skipped` : ''}.`,
+                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported${summary.duplicates > 0 ? `, ${summary.duplicates} existing skipped` : ''}.`,
               });
             }}
           >
