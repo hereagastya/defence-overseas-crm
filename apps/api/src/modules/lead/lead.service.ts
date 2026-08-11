@@ -14,6 +14,7 @@ import type {
   ConvertLeadInput,
   LeadFiltersInput,
   ImportLeadsSummary,
+  CheckImportPhonesResult,
 } from '@doc/shared';
 import type { AuthenticatedUser } from '../../types/api.types';
 import type { ActivityEntry, NoteEntry } from './lead.repository';
@@ -544,6 +545,22 @@ export async function importLeads(
 
   const skipped = total - imported;
   return { total, imported, skipped, duplicates, errors };
+}
+
+export async function checkImportPhones(
+  phones: string[],
+  user: AuthenticatedUser,
+): Promise<CheckImportPhonesResult> {
+  assertCan(user, Actions.LEADS_IMPORT);
+  if (phones.length === 0) return { existing: [] };
+
+  const { data } = await supabaseAdmin
+    .from('leads')
+    .select('phone')
+    .in('phone', phones)
+    .is('deleted_at', null);
+
+  return { existing: (data ?? []).map((r: { phone: string }) => r.phone) };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

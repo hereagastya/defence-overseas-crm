@@ -8,6 +8,7 @@ import {
   assignLeadSchema,
   convertLeadSchema,
   importLeadsSchema,
+  checkImportPhonesSchema,
 } from '@doc/shared';
 import * as leadService from './lead.service';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../../utils/apiResponse';
@@ -114,6 +115,16 @@ export const importLeads: RequestHandler = async (req, res, next) => {
     const { rows } = importLeadsSchema.parse(req.body);
     const summary = await leadService.importLeads(rows, req.user!);
     sendSuccess(res, summary);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const checkImportPhones: RequestHandler = async (req, res, next) => {
+  try {
+    const { phones } = checkImportPhonesSchema.parse(req.body);
+    const result = await leadService.checkImportPhones(phones, req.user!);
+    sendSuccess(res, result);
   } catch (err) {
     next(err);
   }

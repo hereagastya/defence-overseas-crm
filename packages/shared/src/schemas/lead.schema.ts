@@ -64,10 +64,18 @@ export const importLeadsSchema = z.object({
   rows: z
     .array(z.record(z.string(), z.unknown()))
     .min(1, 'File contains no data rows')
-    .max(1000, 'Cannot import more than 1000 rows at once'),
+    .max(5000, 'Cannot import more than 5000 rows at once'),
 });
 
 export type ImportLeadsInput = z.infer<typeof importLeadsSchema>;
+
+export const checkImportPhonesSchema = z.object({
+  // Empty array is valid — service returns { existing: [] } immediately
+  phones: z.array(z.string()).max(5000),
+});
+
+export type CheckImportPhonesInput = z.infer<typeof checkImportPhonesSchema>;
+export type CheckImportPhonesResult = { existing: string[] };
 
 export type ImportLeadRow = {
   full_name: string;

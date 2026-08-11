@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileSpreadsheet, SkipForward, Upload, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ImportLeadRow, ImportLeadsSummary } from '@doc/shared';
-import { useImportLeads, LEADS_KEY } from './api';
+import { useImportLeads, useCheckImportPhones, LEADS_KEY } from './api';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ import {
 // ── Session persistence ───────────────────────────────────────────────────────
 
 const SESSION_KEY = 'doc-lead-import-session';
-const SESSION_STALE_MS = 10 * 60 * 1000; // 10 min
+const SESSION_STALE_MS = 10 * 60 * 1000;
 
 type StoredSession =
   | { phase: 'importing'; total: number; startedAt: number }
@@ -46,9 +46,18 @@ function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Phone normalization (mirrors backend) ─────────────────────────────────────
 
-const MAX_ROWS = 1000;
+function normalizePhone(raw: string): string {
+  let s = raw.replace(/[\s\-().]/g, '');
+  if (s.startsWith('00')) s = '+' + s.slice(2);
+  if (/^\d{10}$/.test(s)) s = '+91' + s;
+  else if (/^91\d{10}$/.test(s)) s = '+' + s;
+  return s;
+}
+
+// ── Constants + field options ─────────────────────────────────────────────────
+
 const PREVIEW_ROWS = 5;
 
 const LEAD_FIELD_OPTIONS = [
@@ -177,7 +186,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'upload' | 'mapping' | 'importing' | 'result' | 'interrupted';
+type Step = 'upload' | 'mapping' | 'preview' | 'importing' | 'result' | 'interrupted';
 
 export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,9 +206,17 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [interruptedTotal, setInterruptedTotal] = useState(0);
 
-  const { mutate: importLeads } = useImportLeads();
+  // Dedup analysis state
+  const [candidates, setCandidates] = useState<ImportLeadRow[]>([]);
+  const [existingCount, setExistingCount] = useState(0);
+  const [invalidCount, setInvalidCount] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  // On open: detect an import that was interrupted by a page refresh or another tab
+  const { mutate: importLeads } = useImportLeads();
+  const { mutate: checkPhones } = useCheckImportPhones();
+
+  // On open: detect an import interrupted by a page refresh or another tab
   useEffect(() => {
     if (!open) return;
     const session = readSession();
@@ -224,9 +241,9 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     }
 
     setProgress(0);
-    const estimatedMs = Math.max(4000, rawRows.length * 30);
+    const estimatedMs = Math.max(4000, candidates.length * 30);
     const tickMs = 150;
-    const CAP = 83; // hold here until the server responds
+    const CAP = 83;
 
     progressTimerRef.current = setInterval(() => {
       setProgress((prev) => {
@@ -241,7 +258,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         progressTimerRef.current = null;
       }
     };
-  }, [step, rawRows.length]);
+  }, [step, candidates.length]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -263,10 +280,14 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setSummary(null);
     setProgress(0);
     setInterruptedTotal(0);
+    setCandidates([]);
+    setExistingCount(0);
+    setInvalidCount(0);
+    setIsAnalyzing(false);
+    setAnalyzeError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  // Block closing the dialog while an import is in flight
   function handleClose(nextOpen: boolean) {
     if (!nextOpen && step === 'importing') return;
     if (!nextOpen) {
@@ -283,7 +304,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     try {
       const { headers: h, rows: r } = await parseSpreadsheet(selected);
       setHeaders(h);
-      setRawRows(r.slice(0, MAX_ROWS));
+      setRawRows(r); // ALL rows — no cap
       setMapping(autoMap(h));
       setStep('mapping');
     } catch (err) {
@@ -300,21 +321,71 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     if (f) handleFileSelected(f);
   }
 
-  function handleImport() {
-    if (step === 'importing') return; // idempotency guard
-    const importRows = buildImportRows(rawRows, mapping);
-    if (importRows.length === 0) {
-      toast({
-        title: 'Nothing to import',
-        description: 'All rows were filtered out by the mapping.',
-      });
+  function handleAnalyze() {
+    if (isAnalyzing) return;
+    setAnalyzeError(null);
+    setIsAnalyzing(true);
+
+    const allRows = buildImportRows(rawRows, mapping);
+
+    // Pass 1: filter invalid rows, normalize phones, deduplicate within the file
+    let invalid = 0;
+    let withinFileDups = 0;
+    const seenPhones = new Set<string>();
+    const validCandidates: ImportLeadRow[] = [];
+
+    for (const row of allRows) {
+      if (!row.full_name?.trim() || !row.phone?.trim()) {
+        invalid++;
+        continue;
+      }
+      const normalized = normalizePhone(row.phone);
+      if (seenPhones.has(normalized)) {
+        withinFileDups++;
+        continue;
+      }
+      seenPhones.add(normalized);
+      validCandidates.push({ ...row, phone: normalized });
+    }
+
+    const phonesToCheck = validCandidates.map((r) => r.phone!);
+
+    // No valid rows at all — skip API call
+    if (phonesToCheck.length === 0) {
+      setInvalidCount(invalid);
+      setExistingCount(withinFileDups);
+      setCandidates([]);
+      setIsAnalyzing(false);
+      setStep('preview');
       return;
     }
 
-    writeSession({ phase: 'importing', total: rawRows.length, startedAt: Date.now() });
+    // Pass 2: check normalized phones against the CRM
+    checkPhones(phonesToCheck, {
+      onSuccess: (result) => {
+        const existingSet = new Set(result.existing);
+        const newCandidates = validCandidates.filter((r) => !existingSet.has(r.phone!));
+        const crmDups = phonesToCheck.length - newCandidates.length;
+        setInvalidCount(invalid);
+        setExistingCount(withinFileDups + crmDups);
+        setCandidates(newCandidates);
+        setIsAnalyzing(false);
+        setStep('preview');
+      },
+      onError: () => {
+        setIsAnalyzing(false);
+        setAnalyzeError('Could not check against existing leads. Please try again.');
+      },
+    });
+  }
+
+  function handleImport() {
+    if (step === 'importing' || candidates.length === 0) return;
+
+    writeSession({ phase: 'importing', total: candidates.length, startedAt: Date.now() });
     setStep('importing');
 
-    importLeads(importRows, {
+    importLeads(candidates, {
       onSuccess: (result) => {
         if (progressTimerRef.current) {
           clearInterval(progressTimerRef.current);
@@ -323,7 +394,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         clearSession();
         setProgress(100);
         setSummary(result);
-        // Brief pause at 100% so the bar visually completes before the step changes
         transitionTimerRef.current = setTimeout(() => setStep('result'), 400);
       },
       onError: (error: unknown) => {
@@ -333,11 +403,9 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         }
         clearSession();
 
-        // A server rejection (4xx/5xx with a response body) is an explicit failure.
-        // Network timeouts, dropped connections, and client-side aborts have no
-        // `.response` — the server may have continued processing and saved some rows,
-        // so we must not call it "Import failed". Instead show the interrupted screen
-        // and refresh the leads list so the user sees whatever was actually saved.
+        // A server rejection has a `.response` body — that is an explicit failure.
+        // Network timeouts and dropped connections have no `.response`: the server may
+        // have continued inserting rows, so we must not report "Import failed".
         const isServerRejection =
           error !== null &&
           typeof error === 'object' &&
@@ -350,21 +418,20 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             description: 'The server rejected the request. Check the file and try again.',
             variant: 'destructive',
           });
-          setStep('mapping');
+          setStep('preview');
         } else {
-          // Refresh the list — some rows may have been inserted before the connection dropped
           queryClient.invalidateQueries({ queryKey: LEADS_KEY });
-          setInterruptedTotal(rawRows.length);
+          setInterruptedTotal(candidates.length);
           setStep('interrupted');
         }
       },
     });
   }
 
-  const canImport =
+  const canProceed =
     Object.values(mapping).includes('full_name') && Object.values(mapping).includes('phone');
 
-  const simulatedCount = Math.floor((progress / 100) * rawRows.length);
+  const simulatedCount = Math.floor((progress / 100) * candidates.length);
 
   // ── Step: Upload ──────────────────────────────────────────────────────────
 
@@ -395,9 +462,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium">Drop your file here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                .xlsx and .csv · up to {MAX_ROWS} rows
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">.xlsx and .csv — any size</p>
             </div>
             {isParsing && (
               <p className="text-xs text-muted-foreground animate-pulse">Reading file…</p>
@@ -446,21 +511,15 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     );
   }
 
-  // ── Step: Mapping + Preview ───────────────────────────────────────────────
+  // ── Step: Mapping ─────────────────────────────────────────────────────────
 
   function renderMapping() {
-    const previewRows = rawRows.slice(0, PREVIEW_ROWS);
-    const mappedHeaders = headers.filter((h) => mapping[h] !== 'ignore');
-
     return (
       <>
         <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
               <strong className="text-foreground">{rawRows.length}</strong> rows detected
-              {rawRows.length === MAX_ROWS && (
-                <span className="ml-1 text-xs text-amber-600">(capped at {MAX_ROWS})</span>
-              )}
             </span>
             <span className="text-xs text-muted-foreground">Source: {file?.name}</span>
           </div>
@@ -511,17 +570,60 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                 </tbody>
               </table>
             </div>
-            {!canImport && (
+            {!canProceed && (
               <p className="text-xs text-destructive mt-1.5">
                 Map at least <strong>Full Name</strong> and <strong>Phone</strong> to continue.
               </p>
             )}
           </div>
 
-          {mappedHeaders.length > 0 && (
+          {analyzeError && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{analyzeError}</p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setStep('upload')}>
+            ← Back
+          </Button>
+          <Button onClick={handleAnalyze} disabled={!canProceed || isAnalyzing}>
+            {isAnalyzing ? 'Checking…' : 'Continue →'}
+          </Button>
+        </DialogFooter>
+      </>
+    );
+  }
+
+  // ── Step: Preview ─────────────────────────────────────────────────────────
+
+  function renderPreview() {
+    const mappedHeaders = headers.filter((h) => mapping[h] !== 'ignore');
+    const previewCandidates = candidates.slice(0, PREVIEW_ROWS);
+
+    return (
+      <>
+        <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-4 gap-3">
+            <StatCard label="Total rows" value={rawRows.length} icon="total" />
+            <StatCard label="New leads" value={candidates.length} icon="success" />
+            <StatCard label="Already existing" value={existingCount} icon="duplicate" />
+            <StatCard label="Invalid" value={invalidCount} icon="error" />
+          </div>
+
+          {candidates.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                All leads in this file already exist in the CRM. Nothing to import.
+              </p>
+            </div>
+          ) : (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                Preview (first {Math.min(PREVIEW_ROWS, rawRows.length)} rows)
+                Preview of new leads (first {Math.min(PREVIEW_ROWS, candidates.length)})
               </p>
               <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-xs">
@@ -545,16 +647,23 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewRows.map((row, i) => (
+                    {previewCandidates.map((row, i) => (
                       <tr key={i} className="border-t">
-                        {mappedHeaders.map((h) => (
-                          <td
-                            key={h}
-                            className="px-3 py-1.5 max-w-[200px] truncate text-muted-foreground"
-                          >
-                            {row[h] || <span className="italic opacity-50">empty</span>}
-                          </td>
-                        ))}
+                        {mappedHeaders.map((h) => {
+                          const field = mapping[h];
+                          const value =
+                            field !== 'ignore'
+                              ? String((row as Record<string, unknown>)[field] ?? '')
+                              : '';
+                          return (
+                            <td
+                              key={h}
+                              className="px-3 py-1.5 max-w-[200px] truncate text-muted-foreground"
+                            >
+                              {value || <span className="italic opacity-50">empty</span>}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -565,11 +674,11 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => setStep('upload')}>
+          <Button variant="outline" onClick={() => setStep('mapping')}>
             ← Back
           </Button>
-          <Button onClick={handleImport} disabled={!canImport}>
-            Import {rawRows.length} rows
+          <Button onClick={handleImport} disabled={candidates.length === 0}>
+            Import {candidates.length} new lead{candidates.length !== 1 ? 's' : ''}
           </Button>
         </DialogFooter>
       </>
@@ -588,7 +697,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               <span className="tabular-nums text-muted-foreground">{Math.round(progress)}%</span>
             </div>
 
-            {/* Progress bar */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
@@ -597,7 +705,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              {simulatedCount} / {rawRows.length} rows processed
+              {simulatedCount} / {candidates.length} rows processed
             </p>
           </div>
 
@@ -667,17 +775,19 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   function renderResult() {
     if (!summary) return null;
 
-    const invalidRows = summary.errors.length;
-    const allClean = summary.imported > 0 && summary.duplicates === 0 && invalidRows === 0;
+    // Combine pre-check skips with any race-condition dups the backend caught
+    const totalExisting = existingCount + summary.duplicates;
+    const totalInvalid = invalidCount + summary.errors.length;
+    const allClean = summary.imported > 0 && totalExisting === 0 && totalInvalid === 0;
 
     return (
       <>
         <div className="py-4 space-y-5">
           <div className="grid grid-cols-4 gap-3">
-            <StatCard label="Total" value={summary.total} icon="total" />
+            <StatCard label="Total" value={rawRows.length} icon="total" />
             <StatCard label="Imported" value={summary.imported} icon="success" />
-            <StatCard label="Existing" value={summary.duplicates} icon="duplicate" />
-            <StatCard label="Invalid" value={invalidRows} icon="error" />
+            <StatCard label="Existing" value={totalExisting} icon="duplicate" />
+            <StatCard label="Invalid" value={totalInvalid} icon="error" />
           </div>
 
           {allClean && (
@@ -690,10 +800,10 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             </div>
           )}
 
-          {invalidRows > 0 && (
+          {summary.errors.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                Skipped rows ({invalidRows})
+                Failed rows ({summary.errors.length})
               </p>
               <div className="rounded-md border max-h-48 overflow-y-auto">
                 {summary.errors.map((e, i) => (
@@ -718,7 +828,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               handleClose(false);
               toast({
                 title: 'Import complete',
-                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported${summary.duplicates > 0 ? `, ${summary.duplicates} existing skipped` : ''}.`,
+                description: `${summary.imported} lead${summary.imported !== 1 ? 's' : ''} imported${totalExisting > 0 ? `, ${totalExisting} existing skipped` : ''}.`,
               });
             }}
           >
@@ -733,7 +843,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
 
   const titles: Record<Step, string> = {
     upload: 'Import Leads',
-    mapping: 'Map Columns & Preview',
+    mapping: 'Map Columns',
+    preview: 'Review Import',
     importing: 'Importing…',
     result: 'Import Complete',
     interrupted: 'Import Interrupted',
@@ -751,6 +862,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
 
         {step === 'upload' && renderUpload()}
         {step === 'mapping' && renderMapping()}
+        {step === 'preview' && renderPreview()}
         {step === 'importing' && renderImporting()}
         {step === 'result' && renderResult()}
         {step === 'interrupted' && renderInterrupted()}

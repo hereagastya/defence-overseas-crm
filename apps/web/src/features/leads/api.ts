@@ -14,6 +14,7 @@ import type {
   FollowupType,
   ImportLeadRow,
   ImportLeadsSummary,
+  CheckImportPhonesResult,
 } from '@doc/shared';
 
 // ── Local types (mirror backend repository shapes) ────────────────────────────
@@ -230,6 +231,15 @@ export function useImportLeads() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_KEY });
     },
+  });
+}
+
+export function useCheckImportPhones() {
+  return useMutation({
+    mutationFn: (phones: string[]) =>
+      apiClient
+        .post<ApiResponse<CheckImportPhonesResult>>(API_ENDPOINTS.LEADS.IMPORT_CHECK, { phones })
+        .then((r) => r.data.data),
   });
 }
 
