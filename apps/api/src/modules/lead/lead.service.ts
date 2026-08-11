@@ -488,15 +488,26 @@ export async function importLeads(
     return { total, imported: 0, skipped: total, duplicates: 0, errors };
   }
 
-  // 2. Bulk-check existing phones to detect duplicates in one query
-  const candidatePhones = candidates.map((c) => c.input.phone);
-  const { data: existingRows } = await supabaseAdmin
-    .from('leads')
-    .select('phone')
-    .in('phone', candidatePhones)
-    .is('deleted_at', null);
-
-  const existingPhones = new Set((existingRows ?? []).map((r: { phone: string }) => r.phone));
+  // 2. Fetch all existing phones (paginated) — avoids URL-length overflow from .in() with large arrays
+  const PAGE_SIZE = 1000;
+  const existingPhones = new Set<string>();
+  let from = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const { data: pageRows, error: pageError } = await supabaseAdmin
+      .from('leads')
+      .select('phone')
+      .is('deleted_at', null)
+      .range(from, from + PAGE_SIZE - 1);
+    if (pageError) {
+      logger.error({ error: pageError }, 'importLeads: failed to fetch existing phones');
+      throw new AppError('INTERNAL_SERVER_ERROR', 500, 'Failed to check existing leads');
+    }
+    const rows = (pageRows ?? []) as Array<{ phone: string }>;
+    rows.forEach((r) => existingPhones.add(r.phone));
+    hasMore = rows.length === PAGE_SIZE;
+    from += PAGE_SIZE;
+  }
 
   // 3. Split candidates: known phone duplicates are skipped immediately
   type InsertCandidate = { input: CreateLeadInput; originalIndex: number };
@@ -509,29 +520,35 @@ export async function importLeads(
     }
   }
 
-  // 4. Batch insert — Promise.allSettled so one failure doesn't abort the rest
+  // 4. Insert in controlled batches of 50 — prevents flooding Supabase with simultaneous requests
+  const BATCH_SIZE = 50;
   let imported = 0;
   if (toInsert.length > 0) {
-    const results = await Promise.allSettled(toInsert.map(({ input }) => leadRepo.create(input)));
+    for (let batchStart = 0; batchStart < toInsert.length; batchStart += BATCH_SIZE) {
+      const batch = toInsert.slice(batchStart, batchStart + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(({ input }) => leadRepo.create(input)),
+      );
 
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        imported++;
-      } else {
-        const err = result.reason;
-        // 409 CONFLICT = race-condition phone duplicate that slipped past the bulk check
-        if (err instanceof AppError && err.statusCode === 409) {
-          duplicates++;
+      for (let i = 0; i < batchResults.length; i++) {
+        const result = batchResults[i];
+        if (result.status === 'fulfilled') {
+          imported++;
         } else {
-          // Genuine insert failure — report as invalid row, not a duplicate
-          const rowNum = toInsert[i].originalIndex + 1;
-          errors.push({ row: rowNum, reason: 'Failed to save — database error' });
+          const err = result.reason;
+          // 409 CONFLICT = race-condition phone duplicate that slipped past the dedup check
+          if (err instanceof AppError && err.statusCode === 409) {
+            duplicates++;
+          } else {
+            // Genuine insert failure — report as invalid row, not a duplicate
+            const rowNum = batch[i].originalIndex + 1;
+            errors.push({ row: rowNum, reason: 'Failed to save — database error' });
+          }
         }
       }
     }
 
-    // Activity log — one entry for the whole batch
+    // Activity log — one entry for the whole import
     if (imported > 0) {
       logActivity({
         actor_id: user.id,

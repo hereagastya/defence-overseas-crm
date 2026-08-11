@@ -226,7 +226,13 @@ export function useImportLeads() {
   return useMutation({
     mutationFn: (rows: ImportLeadRow[]) =>
       apiClient
-        .post<ApiResponse<ImportLeadsSummary>>(API_ENDPOINTS.LEADS.IMPORT, { rows })
+        .post<ApiResponse<ImportLeadsSummary>>(
+          API_ENDPOINTS.LEADS.IMPORT,
+          { rows },
+          {
+            timeout: 5 * 60 * 1000,
+          },
+        )
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_KEY });
