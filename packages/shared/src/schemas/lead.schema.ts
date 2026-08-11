@@ -70,12 +70,21 @@ export const importLeadsSchema = z.object({
 export type ImportLeadsInput = z.infer<typeof importLeadsSchema>;
 
 export const checkImportPhonesSchema = z.object({
-  // Empty array is valid — service returns { existing: [] } immediately
-  phones: z.array(z.string()).max(5000),
+  phones: z.array(z.string()).max(10000),
+  emails: z.array(z.string()).max(10000),
 });
 
 export type CheckImportPhonesInput = z.infer<typeof checkImportPhonesSchema>;
-export type CheckImportPhonesResult = { existing: string[] };
+
+export type CheckImportPhonesResult = {
+  existing: string[]; // normalized phones that already exist in the CRM
+  existingByEmail: string[]; // lowercased emails that already exist in the CRM
+  debug: {
+    totalCrmLeads: number;
+    matchedByPhone: number;
+    matchedByEmail: number;
+  };
+};
 
 export type ImportLeadRow = {
   full_name: string;

@@ -46,14 +46,17 @@ function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-// ── Phone normalization (mirrors backend) ─────────────────────────────────────
+// ── Phone normalization — must match lead.service.ts normalizePhone exactly ───
 
 function normalizePhone(raw: string): string {
-  let s = raw.replace(/[\s\-().]/g, '');
-  if (s.startsWith('00')) s = '+' + s.slice(2);
-  if (/^\d{10}$/.test(s)) s = '+91' + s;
-  else if (/^91\d{10}$/.test(s)) s = '+' + s;
-  return s;
+  // Strip spaces, dashes, dots, parentheses (same regex as backend)
+  let p = raw.replace(/[\s\-.()]/g, '');
+  if (p.startsWith('00')) p = '+' + p.slice(2);
+  // Bare 10-digit Indian mobile (must start 6-9, same guard as backend)
+  if (/^[6-9]\d{9}$/.test(p)) return '+91' + p;
+  // 12-digit with 91 prefix but no + (e.g. 919XXXXXXXXX)
+  if (/^91[6-9]\d{9}$/.test(p)) return '+' + p;
+  return p;
 }
 
 // ── Constants + field options ─────────────────────────────────────────────────
@@ -212,6 +215,12 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [invalidCount, setInvalidCount] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  // Debug counters shown in preview (temporary verification aid)
+  const [debugInfo, setDebugInfo] = useState<{
+    totalCrmLeads: number;
+    matchedByPhone: number;
+    matchedByEmail: number;
+  } | null>(null);
 
   const { mutate: importLeads } = useImportLeads();
   const { mutate: checkPhones } = useCheckImportPhones();
@@ -285,6 +294,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setInvalidCount(0);
     setIsAnalyzing(false);
     setAnalyzeError(null);
+    setDebugInfo(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -328,7 +338,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
 
     const allRows = buildImportRows(rawRows, mapping);
 
-    // Pass 1: filter invalid rows, normalize phones, deduplicate within the file
+    // Pass 1: filter invalid rows, normalize identifiers, deduplicate within the file
     let invalid = 0;
     let withinFileDups = 0;
     const seenPhones = new Set<string>();
@@ -339,44 +349,58 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         invalid++;
         continue;
       }
-      const normalized = normalizePhone(row.phone);
-      if (seenPhones.has(normalized)) {
+      const normalizedPhone = normalizePhone(row.phone);
+      if (seenPhones.has(normalizedPhone)) {
         withinFileDups++;
         continue;
       }
-      seenPhones.add(normalized);
-      validCandidates.push({ ...row, phone: normalized });
+      seenPhones.add(normalizedPhone);
+      // Normalize email too (trim + lowercase)
+      const normalizedEmail = row.email?.toLowerCase().trim() || undefined;
+      validCandidates.push({ ...row, phone: normalizedPhone, email: normalizedEmail });
     }
 
     const phonesToCheck = validCandidates.map((r) => r.phone!);
+    const emailsToCheck = validCandidates.map((r) => r.email ?? '').filter(Boolean);
 
-    // No valid rows at all — skip API call
+    // If no valid rows, skip the API call
     if (phonesToCheck.length === 0) {
       setInvalidCount(invalid);
       setExistingCount(withinFileDups);
       setCandidates([]);
+      setDebugInfo(null);
       setIsAnalyzing(false);
       setStep('preview');
       return;
     }
 
-    // Pass 2: check normalized phones against the CRM
-    checkPhones(phonesToCheck, {
-      onSuccess: (result) => {
-        const existingSet = new Set(result.existing);
-        const newCandidates = validCandidates.filter((r) => !existingSet.has(r.phone!));
-        const crmDups = phonesToCheck.length - newCandidates.length;
-        setInvalidCount(invalid);
-        setExistingCount(withinFileDups + crmDups);
-        setCandidates(newCandidates);
-        setIsAnalyzing(false);
-        setStep('preview');
+    // Pass 2: check all identifiers against the full CRM dataset (server fetches all, no .in() URL limit)
+    checkPhones(
+      { phones: phonesToCheck, emails: emailsToCheck },
+      {
+        onSuccess: (result) => {
+          const existingPhoneSet = new Set(result.existing);
+          const existingEmailSet = new Set(result.existingByEmail);
+
+          // A candidate is "existing" if its phone OR email already exists in the CRM
+          const newCandidates = validCandidates.filter(
+            (r) => !existingPhoneSet.has(r.phone!) && !(r.email && existingEmailSet.has(r.email)),
+          );
+          const crmDups = validCandidates.length - newCandidates.length;
+
+          setInvalidCount(invalid);
+          setExistingCount(withinFileDups + crmDups);
+          setCandidates(newCandidates);
+          setDebugInfo(result.debug);
+          setIsAnalyzing(false);
+          setStep('preview');
+        },
+        onError: () => {
+          setIsAnalyzing(false);
+          setAnalyzeError('Could not check against existing leads. Please try again.');
+        },
       },
-      onError: () => {
-        setIsAnalyzing(false);
-        setAnalyzeError('Could not check against existing leads. Please try again.');
-      },
-    });
+    );
   }
 
   function handleImport() {
@@ -612,6 +636,33 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             <StatCard label="Already existing" value={existingCount} icon="duplicate" />
             <StatCard label="Invalid" value={invalidCount} icon="error" />
           </div>
+
+          {/* Debug verification panel — visible during development */}
+          {debugInfo && (
+            <div className="rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs space-y-1 font-mono">
+              <p className="font-semibold text-blue-700 dark:text-blue-400 not-italic">
+                [Debug] Duplicate check results
+              </p>
+              <p className="text-muted-foreground">
+                Total spreadsheet rows: <strong>{rawRows.length}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                Total CRM leads fetched: <strong>{debugInfo.totalCrmLeads}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                Matched by phone: <strong>{debugInfo.matchedByPhone}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                Matched by email: <strong>{debugInfo.matchedByEmail}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                Invalid / skipped (no name or phone): <strong>{invalidCount}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                New leads (unmatched): <strong>{candidates.length}</strong>
+              </p>
+            </div>
+          )}
 
           {candidates.length === 0 ? (
             <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">

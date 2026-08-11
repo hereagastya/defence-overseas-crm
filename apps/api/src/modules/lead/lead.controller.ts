@@ -122,8 +122,8 @@ export const importLeads: RequestHandler = async (req, res, next) => {
 
 export const checkImportPhones: RequestHandler = async (req, res, next) => {
   try {
-    const { phones } = checkImportPhonesSchema.parse(req.body);
-    const result = await leadService.checkImportPhones(phones, req.user!);
+    const { phones, emails } = checkImportPhonesSchema.parse(req.body);
+    const result = await leadService.checkImportPhones(phones, emails, req.user!);
     sendSuccess(res, result);
   } catch (err) {
     next(err);

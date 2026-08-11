@@ -236,9 +236,12 @@ export function useImportLeads() {
 
 export function useCheckImportPhones() {
   return useMutation({
-    mutationFn: (phones: string[]) =>
+    mutationFn: ({ phones, emails }: { phones: string[]; emails: string[] }) =>
       apiClient
-        .post<ApiResponse<CheckImportPhonesResult>>(API_ENDPOINTS.LEADS.IMPORT_CHECK, { phones })
+        .post<ApiResponse<CheckImportPhonesResult>>(API_ENDPOINTS.LEADS.IMPORT_CHECK, {
+          phones,
+          emails,
+        })
         .then((r) => r.data.data),
   });
 }

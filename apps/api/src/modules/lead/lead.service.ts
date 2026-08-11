@@ -549,18 +549,73 @@ export async function importLeads(
 
 export async function checkImportPhones(
   phones: string[],
+  emails: string[],
   user: AuthenticatedUser,
 ): Promise<CheckImportPhonesResult> {
   assertCan(user, Actions.LEADS_IMPORT);
-  if (phones.length === 0) return { existing: [] };
 
-  const { data } = await supabaseAdmin
-    .from('leads')
-    .select('phone')
-    .in('phone', phones)
-    .is('deleted_at', null);
+  // Build lookup sets from the incoming (already-normalized) identifiers
+  const inputPhoneSet = new Set(phones);
+  const inputEmailSet = new Set(emails.map((e) => e.toLowerCase().trim()).filter(Boolean));
 
-  return { existing: (data ?? []).map((r: { phone: string }) => r.phone) };
+  // Fetch ALL existing phones + emails from the DB in pages of 1000.
+  // We deliberately do NOT use .in('phone', phones) because PostgREST encodes
+  // the entire array into a URL query string; with 1600+ entries the URL exceeds
+  // 22 KB — well past the 8 KB gateway limit — and the request silently fails,
+  // returning data=null so every phone appears "new".
+  const PAGE_SIZE = 1000;
+  const allCrmLeads: Array<{ phone: string; email: string | null }> = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .select('phone, email')
+      .is('deleted_at', null)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      logger.error({ error }, 'checkImportPhones: failed to fetch existing leads');
+      throw new AppError('INTERNAL_SERVER_ERROR', 500, 'Failed to check existing leads');
+    }
+
+    const rows = (data ?? []) as Array<{ phone: string; email: string | null }>;
+    allCrmLeads.push(...rows);
+    hasMore = rows.length === PAGE_SIZE;
+    from += PAGE_SIZE;
+  }
+
+  // Build CRM lookup sets
+  const crmPhoneSet = new Set(allCrmLeads.map((r) => r.phone));
+  const crmEmailSet = new Set(
+    allCrmLeads.map((r) => r.email?.toLowerCase().trim()).filter((e): e is string => !!e),
+  );
+
+  // Intersect
+  const existingPhones = [...inputPhoneSet].filter((p) => crmPhoneSet.has(p));
+  const existingEmails = [...inputEmailSet].filter((e) => crmEmailSet.has(e));
+
+  logger.info(
+    {
+      inputPhones: phones.length,
+      inputEmails: emails.length,
+      totalCrmLeads: allCrmLeads.length,
+      matchedByPhone: existingPhones.length,
+      matchedByEmail: existingEmails.length,
+    },
+    'checkImportPhones: complete',
+  );
+
+  return {
+    existing: existingPhones,
+    existingByEmail: existingEmails,
+    debug: {
+      totalCrmLeads: allCrmLeads.length,
+      matchedByPhone: existingPhones.length,
+      matchedByEmail: existingEmails.length,
+    },
+  };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
