@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { API_ENDPOINTS } from '@doc/shared';
+import { TASKS_KEY, FOLLOWUPS_KEY } from '@/features/tasks/api';
 import type {
   PaginatedResponse,
   ApiResponse,
@@ -343,6 +344,7 @@ export function useCreateLeadTask(leadId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leadKeys.tasks(leadId) });
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
     },
   });
 }
@@ -356,6 +358,7 @@ export function useCompleteTask(leadId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leadKeys.tasks(leadId) });
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
     },
   });
 }
@@ -384,6 +387,7 @@ export function useCreateLeadFollowUp(leadId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leadKeys.followups(leadId) });
+      queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
     },
   });
 }
@@ -399,6 +403,7 @@ export function useCompleteFollowUp(leadId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leadKeys.followups(leadId) });
+      queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
     },
   });
 }

@@ -83,8 +83,14 @@ export function useCreateTask() {
       apiClient
         .post<ApiResponse<TaskWithUsers>>(API_ENDPOINTS.TASKS.CREATE, input)
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      if (task.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', task.lead_id, 'tasks'] });
+      }
+      if (task.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', task.student_id, 'tasks'] });
+      }
     },
   });
 }
@@ -96,8 +102,14 @@ export function useUpdateTask() {
       apiClient
         .patch<ApiResponse<TaskWithUsers>>(API_ENDPOINTS.TASKS.UPDATE.replace(':id', id), input)
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      if (task.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', task.lead_id, 'tasks'] });
+      }
+      if (task.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', task.student_id, 'tasks'] });
+      }
     },
   });
 }
@@ -108,6 +120,12 @@ export function useDeleteTask() {
     mutationFn: (id: string) => apiClient.delete(API_ENDPOINTS.TASKS.DELETE.replace(':id', id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as unknown[];
+          return (key[0] === 'leads' || key[0] === 'students') && key[2] === 'tasks';
+        },
+      });
     },
   });
 }
@@ -119,8 +137,14 @@ export function useCompleteTask() {
       apiClient
         .patch<ApiResponse<TaskWithUsers>>(API_ENDPOINTS.TASKS.COMPLETE.replace(':id', id))
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      if (task.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', task.lead_id, 'tasks'] });
+      }
+      if (task.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', task.student_id, 'tasks'] });
+      }
     },
   });
 }
@@ -132,8 +156,14 @@ export function useReopenTask() {
       apiClient
         .patch<ApiResponse<TaskWithUsers>>(API_ENDPOINTS.TASKS.REOPEN.replace(':id', id))
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      if (task.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', task.lead_id, 'tasks'] });
+      }
+      if (task.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', task.student_id, 'tasks'] });
+      }
     },
   });
 }
@@ -159,8 +189,14 @@ export function useCreateFollowUp() {
       apiClient
         .post<ApiResponse<FollowupWithUsers>>(API_ENDPOINTS.FOLLOW_UPS.CREATE, input)
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (followup) => {
       queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
+      if (followup.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', followup.lead_id, 'followups'] });
+      }
+      if (followup.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', followup.student_id, 'followups'] });
+      }
     },
   });
 }
@@ -174,8 +210,14 @@ export function useUpdateFollowUp() {
           ApiResponse<FollowupWithUsers>
         >(API_ENDPOINTS.FOLLOW_UPS.UPDATE.replace(':id', id), input)
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (followup) => {
       queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
+      if (followup.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', followup.lead_id, 'followups'] });
+      }
+      if (followup.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', followup.student_id, 'followups'] });
+      }
     },
   });
 }
@@ -187,6 +229,12 @@ export function useDeleteFollowUp() {
       apiClient.delete(API_ENDPOINTS.FOLLOW_UPS.DELETE.replace(':id', id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey as unknown[];
+          return (key[0] === 'leads' || key[0] === 'students') && key[2] === 'followups';
+        },
+      });
     },
   });
 }
@@ -200,8 +248,14 @@ export function useCompleteFollowUp() {
           ApiResponse<FollowupWithUsers>
         >(API_ENDPOINTS.FOLLOW_UPS.COMPLETE.replace(':id', id), input)
         .then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (followup) => {
       queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
+      if (followup.lead_id) {
+        queryClient.invalidateQueries({ queryKey: ['leads', followup.lead_id, 'followups'] });
+      }
+      if (followup.student_id) {
+        queryClient.invalidateQueries({ queryKey: ['students', followup.student_id, 'followups'] });
+      }
     },
   });
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { API_ENDPOINTS } from '@doc/shared';
+import { TASKS_KEY, FOLLOWUPS_KEY } from '@/features/tasks/api';
 import type {
   PaginatedResponse,
   ApiResponse,
@@ -300,6 +301,7 @@ export function useCreateStudentTask(studentId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.tasks(studentId) });
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
     },
   });
 }
@@ -315,6 +317,7 @@ export function useCompleteStudentTask(studentId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.tasks(studentId) });
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
     },
   });
 }
@@ -343,6 +346,7 @@ export function useCreateStudentFollowUp(studentId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.followups(studentId) });
+      queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
     },
   });
 }
@@ -358,6 +362,7 @@ export function useCompleteStudentFollowUp(studentId: string) {
         .then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: studentKeys.followups(studentId) });
+      queryClient.invalidateQueries({ queryKey: FOLLOWUPS_KEY });
     },
   });
 }
