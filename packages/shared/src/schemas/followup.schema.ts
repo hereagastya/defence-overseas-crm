@@ -38,7 +38,10 @@ export const followupFiltersSchema = z.object({
   student_id: z.string().uuid().optional(),
   date_from: z.string().date().optional(),
   date_to: z.string().date().optional(),
-  overdue_only: z.coerce.boolean().optional().default(false),
+  overdue_only: z
+    .preprocess((v) => v === 'true' || v === true, z.boolean())
+    .optional()
+    .default(false),
 });
 
 export type CreateFollowupInput = z.infer<typeof createFollowupSchema>;

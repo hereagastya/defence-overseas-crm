@@ -7,7 +7,9 @@ import type { LeadWithCounselor, CreateLeadInput, LeadFiltersInput } from '@doc/
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type RawEmployeeRef = { full_name: string };
-type RawCounselorRef = { email: string; employee: RawEmployeeRef[] };
+// PostgREST returns a single object (not array) for one-to-one UNIQUE FK joins
+type EmpResult = RawEmployeeRef | RawEmployeeRef[] | null;
+type RawCounselorRef = { email: string; employee: EmpResult };
 
 type RawLead = {
   id: string;
@@ -83,11 +85,17 @@ const ALLOWED_SORT_COLUMNS = new Set([
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function pickName(emp: EmpResult | undefined): string | null {
+  if (!emp) return null;
+  if (Array.isArray(emp)) return emp[0]?.full_name ?? null;
+  return (emp as RawEmployeeRef).full_name ?? null;
+}
+
 function toLeadWithCounselor(raw: RawLead): LeadWithCounselor {
   const { counselor, ...fields } = raw;
   return {
     ...(fields as Omit<LeadWithCounselor, 'counselor_name' | 'counselor_email'>),
-    counselor_name: counselor?.employee?.[0]?.full_name ?? null,
+    counselor_name: pickName(counselor?.employee),
     counselor_email: counselor?.email ?? null,
   };
 }
@@ -274,7 +282,7 @@ export async function findNotes(leadId: string): Promise<NoteEntry[]> {
     created_by: string;
     created_at: string;
     updated_at: string;
-    author: { employee: { full_name: string }[] } | null;
+    author: { employee: EmpResult } | null;
   };
 
   return ((data ?? []) as unknown as RawNote[]).map((n) => ({
@@ -285,7 +293,7 @@ export async function findNotes(leadId: string): Promise<NoteEntry[]> {
     created_by: n.created_by,
     created_at: n.created_at,
     updated_at: n.updated_at,
-    author_name: n.author?.employee?.[0]?.full_name ?? null,
+    author_name: pickName(n.author?.employee),
   }));
 }
 
@@ -321,7 +329,7 @@ export async function createNote(
     created_by: string;
     created_at: string;
     updated_at: string;
-    author: { employee: { full_name: string }[] } | null;
+    author: { employee: EmpResult } | null;
   };
 
   const n = data as unknown as RawNote;
@@ -333,7 +341,7 @@ export async function createNote(
     created_by: n.created_by,
     created_at: n.created_at,
     updated_at: n.updated_at,
-    author_name: n.author?.employee?.[0]?.full_name ?? null,
+    author_name: pickName(n.author?.employee),
   };
 }
 
@@ -363,7 +371,7 @@ export async function findActivity(leadId: string): Promise<ActivityEntry[]> {
     new_value: Record<string, unknown> | null;
     metadata: Record<string, unknown> | null;
     created_at: string;
-    actor: { employee: { full_name: string }[] } | null;
+    actor: { employee: EmpResult } | null;
   };
 
   return ((data ?? []) as unknown as RawActivity[]).map((a) => ({
@@ -376,6 +384,6 @@ export async function findActivity(leadId: string): Promise<ActivityEntry[]> {
     new_value: a.new_value,
     metadata: a.metadata,
     created_at: a.created_at,
-    actor_name: a.actor?.employee?.[0]?.full_name ?? null,
+    actor_name: pickName(a.actor?.employee),
   }));
 }

@@ -46,6 +46,15 @@ const TASK_SELECT = `
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// PostgREST returns a single object (not array) for one-to-one UNIQUE FK joins
+type EmpResult = { full_name: string } | { full_name: string }[] | null;
+
+function pickName(emp: EmpResult | undefined): string | null {
+  if (!emp) return null;
+  if (Array.isArray(emp)) return emp[0]?.full_name ?? null;
+  return emp.full_name ?? null;
+}
+
 type RawTask = {
   id: string;
   title: string;
@@ -61,16 +70,16 @@ type RawTask = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
-  assignee: { employee: { full_name: string }[] } | null;
-  creator: { employee: { full_name: string }[] } | null;
+  assignee: { employee: EmpResult } | null;
+  creator: { employee: EmpResult } | null;
 };
 
 function toTaskWithUsers(raw: RawTask): TaskWithUsers {
   const { assignee, creator, ...fields } = raw;
   return {
     ...(fields as Omit<TaskWithUsers, 'assigned_to_name' | 'created_by_name'>),
-    assigned_to_name: assignee?.employee?.[0]?.full_name ?? null,
-    created_by_name: creator?.employee?.[0]?.full_name ?? null,
+    assigned_to_name: pickName(assignee?.employee),
+    created_by_name: pickName(creator?.employee),
   };
 }
 

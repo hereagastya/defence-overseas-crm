@@ -35,7 +35,10 @@ export const taskFiltersSchema = z.object({
   student_id: z.string().uuid().optional(),
   due_from: z.string().date().optional(),
   due_to: z.string().date().optional(),
-  overdue_only: z.coerce.boolean().optional().default(false),
+  overdue_only: z
+    .preprocess((v) => v === 'true' || v === true, z.boolean())
+    .optional()
+    .default(false),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
