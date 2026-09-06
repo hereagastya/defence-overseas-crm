@@ -104,8 +104,6 @@ function toLeadWithCounselor(raw: RawLead): LeadWithCounselor {
 
 export async function findAll(
   filters: LeadFiltersInput,
-  userId: string,
-  isAdmin: boolean,
 ): Promise<{ leads: LeadWithCounselor[]; total: number }> {
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 25;
@@ -119,11 +117,6 @@ export async function findAll(
     .from('leads')
     .select(LEAD_SELECT, { count: 'exact' })
     .is('deleted_at', null);
-
-  // Data-level access control — mirrors the RLS policy for non-admin users
-  if (!isAdmin) {
-    query = query.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-  }
 
   // Full-text search across key fields
   if (filters.search) {

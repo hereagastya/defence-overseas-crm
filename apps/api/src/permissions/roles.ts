@@ -103,6 +103,7 @@ export const RolePermissions: Record<UserRole, Action[]> = {
     Actions.LEADS_UPDATE,
     Actions.LEADS_ASSIGN,
     Actions.LEADS_CONVERT,
+    Actions.LEADS_IMPORT,
     Actions.STUDENTS_READ,
     Actions.STUDENTS_UPDATE,
     Actions.FEES_READ,

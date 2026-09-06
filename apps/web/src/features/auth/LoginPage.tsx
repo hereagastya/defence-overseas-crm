@@ -25,6 +25,7 @@ export function LoginPage() {
   });
 
   function onSubmit(values: LoginInput) {
+    form.clearErrors();
     login(values, {
       onSuccess: () => navigate('/dashboard', { replace: true }),
       onError: (error) => {

@@ -27,24 +27,16 @@ function isAdmin(user: AuthenticatedUser): boolean {
   return user.role === UserRole.ADMIN;
 }
 
-/** Returns true when a non-admin user can see the given lead. */
-function isLeadVisible(lead: LeadWithCounselor, user: AuthenticatedUser): boolean {
-  if (isAdmin(user)) return true;
-  return lead.assigned_counselor_id === user.id || lead.assigned_counselor_id === null;
-}
-
 /** Returns true when a non-admin user can mutate (update/stage/convert) the given lead. */
 function isLeadEditable(lead: LeadWithCounselor, user: AuthenticatedUser): boolean {
   if (isAdmin(user)) return true;
   return lead.assigned_counselor_id === user.id;
 }
 
-/** Fetches a lead and throws 404 if it doesn't exist or isn't visible to the user. */
-async function fetchVisibleLead(id: string, user: AuthenticatedUser): Promise<LeadWithCounselor> {
+/** Fetches a lead and throws 404 if it doesn't exist. */
+async function fetchVisibleLead(id: string): Promise<LeadWithCounselor> {
   const lead = await leadRepo.findById(id);
-  if (!lead || !isLeadVisible(lead, user)) {
-    throw new AppError('LEAD_NOT_FOUND', 404, 'Lead not found');
-  }
+  if (!lead) throw new AppError('LEAD_NOT_FOUND', 404, 'Lead not found');
   return lead;
 }
 
@@ -59,13 +51,13 @@ export async function listLeads(
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 25;
 
-  const { leads, total } = await leadRepo.findAll(filters, user.id, isAdmin(user));
+  const { leads, total } = await leadRepo.findAll(filters);
   return { leads, pagination: buildPagination(total, page, limit) };
 }
 
 export async function getLead(id: string, user: AuthenticatedUser): Promise<LeadWithCounselor> {
   assertCan(user, Actions.LEADS_READ);
-  return fetchVisibleLead(id, user);
+  return fetchVisibleLead(id);
 }
 
 export async function createLead(
@@ -104,7 +96,7 @@ export async function updateLead(
 ): Promise<LeadWithCounselor> {
   assertCan(user, Actions.LEADS_UPDATE);
 
-  const existing = await fetchVisibleLead(id, user);
+  const existing = await fetchVisibleLead(id);
 
   if (!isLeadEditable(existing, user)) {
     throw new AppError('FORBIDDEN', 403, 'You can only edit leads assigned to you');
@@ -190,7 +182,7 @@ export async function updateLeadStage(
 ): Promise<LeadWithCounselor> {
   assertCan(user, Actions.LEADS_UPDATE);
 
-  const existing = await fetchVisibleLead(id, user);
+  const existing = await fetchVisibleLead(id);
 
   if (!isLeadEditable(existing, user)) {
     throw new AppError('FORBIDDEN', 403, 'You can only update stages for leads assigned to you');
@@ -234,7 +226,7 @@ export async function assignLead(
 ): Promise<LeadWithCounselor> {
   assertCan(user, Actions.LEADS_ASSIGN);
 
-  const existing = await fetchVisibleLead(id, user);
+  const existing = await fetchVisibleLead(id);
 
   // Non-admin counselors may only assign leads they own or that are unassigned
   if (
@@ -272,7 +264,7 @@ export async function convertLead(
 ): Promise<{ lead: LeadWithCounselor; student_id: string }> {
   assertCan(user, Actions.LEADS_CONVERT);
 
-  const existing = await fetchVisibleLead(id, user);
+  const existing = await fetchVisibleLead(id);
 
   if (!isLeadEditable(existing, user)) {
     throw new AppError('FORBIDDEN', 403, 'You can only convert leads assigned to you');
@@ -357,7 +349,7 @@ export async function convertLead(
 export async function getLeadNotes(id: string, user: AuthenticatedUser): Promise<NoteEntry[]> {
   assertCan(user, Actions.NOTES_READ);
   // Verify the lead exists and is visible — reuses visibility check
-  await fetchVisibleLead(id, user);
+  await fetchVisibleLead(id);
   return leadRepo.findNotes(id);
 }
 
@@ -367,7 +359,7 @@ export async function addLeadNote(
   user: AuthenticatedUser,
 ): Promise<NoteEntry> {
   assertCan(user, Actions.NOTES_CREATE);
-  await fetchVisibleLead(id, user);
+  await fetchVisibleLead(id);
 
   const note = await leadRepo.createNote(id, content, user.id);
 

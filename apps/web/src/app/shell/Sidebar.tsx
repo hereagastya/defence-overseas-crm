@@ -59,7 +59,7 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
                   'hover:bg-accent hover:text-accent-foreground',
                   isActive
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                    : 'text-muted-foreground',
+                    : 'text-foreground/60',
                   collapsed && 'justify-center px-2',
                 )
               }
@@ -128,7 +128,7 @@ export function Sidebar() {
             <ChevronRight className="h-4 w-4" />
           ) : (
             <>
-              <span className="mr-1 text-xs text-muted-foreground">Collapse</span>
+              <span className="mr-1 text-xs text-foreground/60">Collapse</span>
               <ChevronLeft className="h-4 w-4" />
             </>
           )}

@@ -15,6 +15,7 @@ const envSchema = z.object({
   // Meta Lead Ads webhook
   META_WEBHOOK_SECRET: z.string().min(1, 'META_WEBHOOK_SECRET is required'),
   META_VERIFY_TOKEN: z.string().min(1, 'META_VERIFY_TOKEN is required'),
+  META_PAGE_ACCESS_TOKEN: z.string().min(1, 'META_PAGE_ACCESS_TOKEN is required'),
 
   // Website contact-form webhook
   WEBSITE_WEBHOOK_SECRET: z.string().min(1, 'WEBSITE_WEBHOOK_SECRET is required'),

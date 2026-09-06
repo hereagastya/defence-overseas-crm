@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { useLeads, useDeleteLead } from './api';
+import { useEmployees } from '@/features/employees/api';
 import { CreateLeadDialog } from './CreateLeadDialog';
 import { ImportLeadsDialog } from './ImportLeadsDialog';
 import { formatDate } from '@/lib/format';
@@ -132,6 +133,9 @@ export function LeadListPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [stageFilter, setStageFilter] = useState<LeadStage | ''>('');
   const [sourceFilter, setSourceFilter] = useState<LeadSource | ''>('');
+  const [counselorFilter, setCounselorFilter] = useState<string>('');
+
+  const { data: employees } = useEmployees();
   const [showFilters, setShowFilters] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -147,8 +151,9 @@ export function LeadListPage() {
       sort_order: sortOrder,
       stage: stageFilter || undefined,
       source: sourceFilter || undefined,
+      counselor_id: counselorFilter || undefined,
     }),
-    [page, search, sortBy, sortOrder, stageFilter, sourceFilter],
+    [page, search, sortBy, sortOrder, stageFilter, sourceFilter, counselorFilter],
   );
 
   const { data, isLoading, isError, refetch } = useLeads(filters);
@@ -175,6 +180,11 @@ export function LeadListPage() {
 
   function handleSourceChange(value: string) {
     setSourceFilter(value === ALL ? '' : (value as LeadSource));
+    setPage(1);
+  }
+
+  function handleCounselorChange(value: string) {
+    setCounselorFilter(value === ALL ? '' : value);
     setPage(1);
   }
 
@@ -267,9 +277,9 @@ export function LeadListPage() {
           >
             <Filter className="h-3.5 w-3.5" />
             Filters
-            {(stageFilter || sourceFilter) && (
+            {(stageFilter || sourceFilter || counselorFilter) && (
               <span className="ml-1 rounded-full bg-primary text-primary-foreground text-[10px] px-1.5">
-                {[stageFilter, sourceFilter].filter(Boolean).length}
+                {[stageFilter, sourceFilter, counselorFilter].filter(Boolean).length}
               </span>
             )}
           </Button>
@@ -281,12 +291,10 @@ export function LeadListPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          {isAdmin && (
-            <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-              <Upload className="h-4 w-4" />
-              Import
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
           <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Lead
@@ -330,7 +338,26 @@ export function LeadListPage() {
             </Select>
           </div>
 
-          {(stageFilter || sourceFilter) && (
+          <div className="flex flex-col gap-1 min-w-[160px]">
+            <span className="text-xs font-medium text-muted-foreground">Counselor</span>
+            <Select value={counselorFilter || ALL} onValueChange={handleCounselorChange}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All counselors</SelectItem>
+                {(employees ?? [])
+                  .filter((e) => e.is_active)
+                  .map((e) => (
+                    <SelectItem key={e.user_id} value={e.user_id}>
+                      {e.full_name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(stageFilter || sourceFilter || counselorFilter) && (
             <div className="flex items-end">
               <Button
                 variant="ghost"
@@ -339,6 +366,7 @@ export function LeadListPage() {
                 onClick={() => {
                   setStageFilter('');
                   setSourceFilter('');
+                  setCounselorFilter('');
                   setPage(1);
                 }}
               >
@@ -374,7 +402,7 @@ export function LeadListPage() {
       />
 
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
-      {isAdmin && <ImportLeadsDialog open={importOpen} onOpenChange={setImportOpen} />}
+      <ImportLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {isAdmin && (
         <AlertDialog

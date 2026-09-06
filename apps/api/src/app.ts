@@ -10,7 +10,16 @@ export function createApp(): Application {
   const app = express();
 
   // ── Body parsing ────────────────────────────────────────────────────────────
-  app.use(express.json({ limit: '10mb' }));
+  // The verify callback preserves the raw body buffer on req.rawBody so that
+  // the Meta webhook handler can compute the HMAC over the exact bytes Meta signed.
+  app.use(
+    express.json({
+      limit: '10mb',
+      verify: (req, _res, buf) => {
+        (req as { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true }));
 
   // ── CORS ────────────────────────────────────────────────────────────────────
