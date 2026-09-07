@@ -99,17 +99,15 @@ function countByKey<T extends Record<string, unknown>>(items: T[], key: keyof T)
 
 export async function getLeadsReport(
   filters: ReportDateFilters,
-  userId: string,
-  isAdmin: boolean,
+  _userId: string,
+  _isAdmin: boolean,
 ): Promise<LeadsReport> {
   let query = supabaseAdmin
     .from('leads')
     .select('lead_stage, lead_source, lead_status, lead_score, converted_at')
     .is('deleted_at', null);
 
-  if (!isAdmin) {
-    query = query.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-  } else if (filters.counselor_id) {
+  if (filters.counselor_id) {
     query = query.eq('assigned_counselor_id', filters.counselor_id);
   }
 
@@ -316,17 +314,15 @@ export async function getCounselorPerformance(): Promise<CounselorPerformanceRep
 
 export async function getStudentProgressReport(
   filters: ReportDateFilters,
-  userId: string,
-  isAdmin: boolean,
+  _userId: string,
+  _isAdmin: boolean,
 ): Promise<StudentProgressReport> {
   let query = supabaseAdmin
     .from('students')
     .select('student_stage, case_closed_at')
     .is('deleted_at', null);
 
-  if (!isAdmin) {
-    query = query.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-  } else if (filters.counselor_id) {
+  if (filters.counselor_id) {
     query = query.eq('assigned_counselor_id', filters.counselor_id);
   }
 
@@ -381,17 +377,12 @@ export async function getApplicationsReport(
 }
 
 export async function getCountryDistributionReport(
-  userId: string,
-  isAdmin: boolean,
+  _userId: string,
+  _isAdmin: boolean,
 ): Promise<CountryDistributionReport> {
-  let leadsQ = supabaseAdmin.from('leads').select('country, nationality').is('deleted_at', null);
+  const leadsQ = supabaseAdmin.from('leads').select('country, nationality').is('deleted_at', null);
 
-  let studentsQ = supabaseAdmin.from('students').select('country').is('deleted_at', null);
-
-  if (!isAdmin) {
-    leadsQ = leadsQ.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-    studentsQ = studentsQ.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-  }
+  const studentsQ = supabaseAdmin.from('students').select('country').is('deleted_at', null);
 
   const [leadsRes, studentsRes] = await Promise.all([leadsQ, studentsQ]);
 

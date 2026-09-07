@@ -22,11 +22,6 @@ function isAdmin(user: AuthenticatedUser): boolean {
   return user.role === UserRole.ADMIN;
 }
 
-function isStudentVisible(student: StudentWithCounselor, user: AuthenticatedUser): boolean {
-  if (isAdmin(user)) return true;
-  return student.assigned_counselor_id === user.id || student.assigned_counselor_id === null;
-}
-
 function isStudentEditable(student: StudentWithCounselor, user: AuthenticatedUser): boolean {
   if (isAdmin(user)) return true;
   return student.assigned_counselor_id === user.id;
@@ -34,10 +29,10 @@ function isStudentEditable(student: StudentWithCounselor, user: AuthenticatedUse
 
 async function fetchVisibleStudent(
   id: string,
-  user: AuthenticatedUser,
+  _user: AuthenticatedUser,
 ): Promise<StudentWithCounselor> {
   const student = await studentRepo.findById(id);
-  if (!student || !isStudentVisible(student, user)) {
+  if (!student) {
     throw new AppError('STUDENT_NOT_FOUND', 404, 'Student not found');
   }
   return student;
