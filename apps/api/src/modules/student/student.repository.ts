@@ -151,8 +151,6 @@ const NOTE_SELECT = `
 
 export async function findAll(
   filters: StudentFiltersInput,
-  userId: string,
-  isAdmin: boolean,
 ): Promise<{ students: StudentWithCounselor[]; total: number }> {
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 25;
@@ -166,11 +164,6 @@ export async function findAll(
     .from('students')
     .select(STUDENT_SELECT, { count: 'exact' })
     .is('deleted_at', null);
-
-  // Data-level access control — mirrors the visibility rule for non-admin users
-  if (!isAdmin) {
-    query = query.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
-  }
 
   // Full-text search across key fields
   if (filters.search) {

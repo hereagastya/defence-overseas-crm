@@ -54,7 +54,7 @@ export async function listStudents(
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 25;
 
-  const { students, total } = await studentRepo.findAll(filters, user.id, isAdmin(user));
+  const { students, total } = await studentRepo.findAll(filters);
   return { students, pagination: buildPagination(total, page, limit) };
 }
 

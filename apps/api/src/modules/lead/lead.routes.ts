@@ -12,8 +12,8 @@ router.use(authenticate);
 router.get('/', leadController.listLeads);
 router.post('/', leadController.createLead);
 // import routes must be registered before /:id wildcards
-router.post('/import', requireAdmin, leadController.importLeads);
-router.post('/import/check', requireAdmin, leadController.checkImportPhones);
+router.post('/import', leadController.importLeads);
+router.post('/import/check', leadController.checkImportPhones);
 
 // ── Member — core CRUD ────────────────────────────────────────────────────────
 router.get('/:id', leadController.getLead);

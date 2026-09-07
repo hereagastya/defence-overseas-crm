@@ -91,44 +91,28 @@ export async function getSummary(userId: string, isAdmin: boolean): Promise<Dash
   const nowIso = now.toISOString();
 
   // Build lead count queries
-  let totalLeadsQ = supabaseAdmin
+  const totalLeadsQ = supabaseAdmin
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null);
-  if (!isAdmin)
-    totalLeadsQ = totalLeadsQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let leadsThisMonthQ = supabaseAdmin
+  const leadsThisMonthQ = supabaseAdmin
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .gte('created_at', monthStart);
-  if (!isAdmin)
-    leadsThisMonthQ = leadsThisMonthQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
   // Build student count queries
-  let totalStudentsQ = supabaseAdmin
+  const totalStudentsQ = supabaseAdmin
     .from('students')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null);
-  if (!isAdmin)
-    totalStudentsQ = totalStudentsQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let studentsActiveQ = supabaseAdmin
+  const studentsActiveQ = supabaseAdmin
     .from('students')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .is('case_closed_at', null);
-  if (!isAdmin)
-    studentsActiveQ = studentsActiveQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
   // Build task count queries
   let openTasksQ = supabaseAdmin
@@ -213,65 +197,41 @@ export async function getKPIs(userId: string, isAdmin: boolean): Promise<Dashboa
   const lastMonthStart = startOfLastMonth(now);
   const lastMonthEnd = endOfLastMonth(now);
 
-  let totalLeadsQ = supabaseAdmin
+  const totalLeadsQ = supabaseAdmin
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null);
-  if (!isAdmin)
-    totalLeadsQ = totalLeadsQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let totalStudentsQ = supabaseAdmin
+  const totalStudentsQ = supabaseAdmin
     .from('students')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null);
-  if (!isAdmin)
-    totalStudentsQ = totalStudentsQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let leadsThisMonthQ = supabaseAdmin
+  const leadsThisMonthQ = supabaseAdmin
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .gte('created_at', thisMonthStart);
-  if (!isAdmin)
-    leadsThisMonthQ = leadsThisMonthQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let leadsLastMonthQ = supabaseAdmin
+  const leadsLastMonthQ = supabaseAdmin
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .gte('created_at', lastMonthStart)
     .lte('created_at', lastMonthEnd);
-  if (!isAdmin)
-    leadsLastMonthQ = leadsLastMonthQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let studentsThisMonthQ = supabaseAdmin
+  const studentsThisMonthQ = supabaseAdmin
     .from('students')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .gte('created_at', thisMonthStart);
-  if (!isAdmin)
-    studentsThisMonthQ = studentsThisMonthQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
-  let studentsLastMonthQ = supabaseAdmin
+  const studentsLastMonthQ = supabaseAdmin
     .from('students')
     .select('id', { count: 'exact', head: true })
     .is('deleted_at', null)
     .gte('created_at', lastMonthStart)
     .lte('created_at', lastMonthEnd);
-  if (!isAdmin)
-    studentsLastMonthQ = studentsLastMonthQ.or(
-      `assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`,
-    );
 
   let tasksCompletedQ = supabaseAdmin
     .from('tasks')
@@ -342,17 +302,16 @@ export async function getKPIs(userId: string, isAdmin: boolean): Promise<Dashboa
   };
 }
 
-export async function getCharts(userId: string, isAdmin: boolean): Promise<DashboardCharts> {
+export async function getCharts(_userId: string, _isAdmin: boolean): Promise<DashboardCharts> {
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString();
 
-  let leadsQ = supabaseAdmin.from('leads').select('lead_stage, lead_source').is('deleted_at', null);
-  if (!isAdmin)
-    leadsQ = leadsQ.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
+  const leadsQ = supabaseAdmin
+    .from('leads')
+    .select('lead_stage, lead_source')
+    .is('deleted_at', null);
 
-  let studentsQ = supabaseAdmin.from('students').select('student_stage').is('deleted_at', null);
-  if (!isAdmin)
-    studentsQ = studentsQ.or(`assigned_counselor_id.eq.${userId},assigned_counselor_id.is.null`);
+  const studentsQ = supabaseAdmin.from('students').select('student_stage').is('deleted_at', null);
 
   const paymentsQ = supabaseAdmin
     .from('payments')
