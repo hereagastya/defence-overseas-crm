@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="display:flex;flex-direction:column;gap:18px;max-width:1200px;">
+  <button onclick="{{ goBack }}" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--mutedFg);font-size:12.5px;cursor:pointer;padding:0;width:fit-content;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+    Back to Leads
+  </button>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:46px;height:46px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--mutedFg);">{{ initials }}</div>
+      <div>
+        <div style="font-size:19px;font-weight:700;">{{ name }}</div>
+        <div style="font-size:12.5px;color:var(--mutedFg);margin-top:2px;">{{ phone }} &middot; {{ country }}</div>
+      </div>
+      <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--primary);color:var(--primaryFg);margin-left:6px;">{{ stage }}</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--destructive);color:var(--destructiveFg);">{{ score }}</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button style="height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:13px;font-weight:500;cursor:pointer;">Update Stage</button>
+      <button style="height:34px;padding:0 14px;border-radius:8px;border:none;background:var(--primary);color:var(--primaryFg);font-size:13px;font-weight:600;cursor:pointer;">Convert to Student</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <div onclick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px;">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:14px;">Lead Details</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <sc-for list="{{ fields }}" as="f" hint-placeholder-count="8">
+              <div>
+                <div style="font-size:11.5px;color:var(--mutedFg);">{{ f.label }}</div>
+                <div style="font-size:13.5px;font-weight:500;margin-top:3px;">{{ f.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+          <textarea placeholder="Add a note about this lead…" style="width:100%;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;background:var(--muted);color:var(--fg);resize:vertical;"></textarea>
+          <sc-for list="{{ notes }}" as="n" hint-placeholder-count="3">
+            <div style="border-bottom:1px solid var(--border);padding-bottom:12px;">
+              <div style="font-size:13px;">{{ n.text }}</div>
+              <div style="font-size:11.5px;color:var(--mutedFg);margin-top:5px;">{{ n.author }} &middot; {{ n.when }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 22px;">
+          <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+              <div style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;"></div>
+              <div style="flex:1;font-size:13px;font-weight:500;">{{ t.title }}</div>
+              <span style="font-size:11.5px;color:var(--mutedFg);">{{ t.due }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+            <div style="display:flex;gap:11px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--muted);flex-shrink:0;"></div>
+              <div><div style="font-size:13px;">{{ a.text }}</div><div style="font-size:11.5px;color:var(--mutedFg);margin-top:2px;">{{ a.when }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Assigned Counselor</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">RV</div>
+          <div style="font-size:13px;font-weight:500;">{{ counselor }}</div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Source</div>
+        <div style="font-size:13px;">{{ source }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'activity', label: 'Activity' },
+];
+
+function initials(name) {
+  return (name || '').split(' ').map((p) => p[0]).slice(0, 2).join('');
+}
+
+class Component extends DCLogic {
+  state = { tab: 'overview' };
+
+  renderVals() {
+    const lead = this.props.lead || {};
+    const tab = this.state.tab;
+
+    const tabs = TABS.map((t) => {
+      const active = tab === t.id;
+      return {
+        label: t.label,
+        onClick: () => this.setState({ tab: t.id }),
+        style: 'padding:9px 4px;margin-right:22px;font-size:13px;font-weight:600;cursor:pointer;color:' + (active ? 'var(--fg)' : 'var(--mutedFg)') + ';border-bottom:2px solid ' + (active ? 'var(--primary)' : 'transparent') + ';',
+      };
+    });
+
+    return {
+      goBack: this.props.goBack || (() => {}),
+      name: lead.name,
+      phone: lead.phone,
+      country: lead.country,
+      stage: lead.stage,
+      score: lead.score,
+      counselor: lead.counselor,
+      initials: initials(lead.name),
+      source: 'Instagram Ads',
+      tabs,
+      isOverview: tab === 'overview',
+      isNotes: tab === 'notes',
+      isTasks: tab === 'tasks',
+      isActivity: tab === 'activity',
+      fields: [
+        { label: 'Full Name', value: lead.name },
+        { label: 'Phone', value: lead.phone },
+        { label: 'Email', value: (lead.name || '').toLowerCase().replace(' ', '.') + '@gmail.com' },
+        { label: 'Country of Interest', value: lead.country },
+        { label: 'Lead Stage', value: lead.stage },
+        { label: 'Lead Score', value: lead.score },
+        { label: 'Counselor', value: lead.counselor },
+        { label: 'Created On', value: lead.created },
+      ],
+      notes: [
+        { text: 'Interested in Fall 2026 intake, has IELTS 6.5. Needs to retake for band 7.', author: 'Rina Verma', when: '3 days ago' },
+        { text: 'Called — parents want to discuss budget before proceeding with registration.', author: 'Rina Verma', when: '6 days ago' },
+      ],
+      tasks: [
+        { title: 'Send university shortlist', due: 'Due today' },
+        { title: 'Follow up on IELTS booking', due: 'Due 16 Jul' },
+        { title: 'Share fee structure', due: 'Due 18 Jul' },
+      ],
+      activity: [
+        { text: 'Stage changed from Pre-Counseling to ' + lead.stage, when: '2 days ago' },
+        { text: 'Assigned to ' + lead.counselor, when: '4 days ago' },
+        { text: 'Lead created from Instagram Ads', when: lead.created },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

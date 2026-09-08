@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="display:flex;flex-direction:column;gap:18px;max-width:1400px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-.01em;">Leads</div>
+      <div style="font-size:13.5px;color:var(--mutedFg);margin-top:3px;">Manage your lead pipeline</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;background:var(--muted);border-radius:8px;padding:2px;">
+        <button onclick="{{ setListMode }}" style="{{ listBtnStyle }}">List</button>
+        <button onclick="{{ setKanbanMode }}" style="{{ kanbanBtnStyle }}">Kanban</button>
+      </div>
+      <button style="height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:13px;font-weight:500;cursor:pointer;">Filters</button>
+      <button style="height:34px;padding:0 16px;border-radius:8px;border:none;background:var(--primary);color:var(--primaryFg);font-size:13px;font-weight:600;cursor:pointer;">+ Add Lead</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1.6fr 1.3fr 1.3fr 0.9fr 1.2fr 1fr 1fr;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--muted);">
+        <span style="{{ headStyle }}">Name</span><span style="{{ headStyle }}">Phone</span><span style="{{ headStyle }}">Stage</span><span style="{{ headStyle }}">Score</span><span style="{{ headStyle }}">Counselor</span><span style="{{ headStyle }}">Country</span><span style="{{ headStyle }}">Created</span>
+      </div>
+      <sc-for list="{{ leads }}" as="l" hint-placeholder-count="8">
+        <div onclick="{{ l.onClick }}" style="display:grid;grid-template-columns:1.6fr 1.3fr 1.3fr 0.9fr 1.2fr 1fr 1fr;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;">
+          <span style="font-size:13px;font-weight:600;color:var(--primary);">{{ l.name }}</span>
+          <span style="font-size:12.5px;color:var(--mutedFg);">{{ l.phone }}</span>
+          <span><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:{{ l.stageBg }};color:{{ l.stageFg }};">{{ l.stage }}</span></span>
+          <span><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:{{ l.scoreBg }};color:{{ l.scoreFg }};">{{ l.score }}</span></span>
+          <span style="font-size:12.5px;color:var(--mutedFg);">{{ l.counselor }}</span>
+          <span style="font-size:12.5px;color:var(--mutedFg);">{{ l.country }}</span>
+          <span style="font-size:12.5px;color:var(--mutedFg);">{{ l.created }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isKanban }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;">
+      <sc-for list="{{ columns }}" as="col" hint-placeholder-count="4">
+        <div style="width:250px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:0 2px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ col.dot }};flex-shrink:0;"></span>
+            <span style="font-size:12.5px;font-weight:600;">{{ col.title }}</span>
+            <span style="font-size:11.5px;color:var(--mutedFg);margin-left:auto;">{{ col.count }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;min-height:40px;">
+            <sc-for list="{{ col.cards }}" as="c" hint-placeholder-count="2">
+              <div onclick="{{ c.onClick }}" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px 12px;cursor:pointer;">
+                <div style="font-size:12.5px;font-weight:600;">{{ c.name }}</div>
+                <div style="font-size:11px;color:var(--mutedFg);margin-top:4px;">{{ c.country }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;">
+                  <span style="font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:99px;background:{{ c.scoreBg }};color:{{ c.scoreFg }};">{{ c.score }}</span>
+                  <span style="width:20px;height:20px;border-radius:50%;background:var(--muted);font-size:9.5px;font-weight:700;color:var(--mutedFg);display:flex;align-items:center;justify-content:center;">{{ c.initials }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const LEADS = [
+  { id: 'l1', name: 'Aditya Sharma', phone: '+91 98200 11234', stage: 'New Inquiry', score: 'Hot', counselor: 'Rina Verma', country: 'Canada', created: '2 Jul 2026' },
+  { id: 'l2', name: 'Priya Nair', phone: '+91 90040 55621', stage: '1:1 Counseling', score: 'Warm', counselor: 'Sameer Joshi', country: 'UK', created: '28 Jun 2026' },
+  { id: 'l3', name: 'Rohan Mehta', phone: '+91 99870 22110', stage: 'Registration', score: 'Hot', counselor: 'Rina Verma', country: 'Australia', created: '19 Jun 2026' },
+  { id: 'l4', name: 'Ishaan Kapoor', phone: '+91 96500 88213', stage: 'Mock Test', score: 'Warm', counselor: 'Anil Kumar', country: 'Germany', created: '15 Jun 2026' },
+  { id: 'l5', name: 'Sneha Reddy', phone: '+91 93810 44902', stage: 'Pre-Counseling', score: 'Cold', counselor: 'Sameer Joshi', country: 'Ireland', created: '10 Jun 2026' },
+  { id: 'l6', name: 'Vikram Singh', phone: '+91 98110 76543', stage: 'Webinar', score: 'Warm', counselor: 'Rina Verma', country: 'USA', created: '6 Jun 2026' },
+  { id: 'l7', name: 'Ananya Iyer', phone: '+91 91760 33987', stage: 'Post-Counseling', score: 'Hot', counselor: 'Anil Kumar', country: 'New Zealand', created: '2 Jun 2026' },
+  { id: 'l8', name: 'Kabir Malhotra', phone: '+91 97110 22456', stage: 'Registration Completed', score: 'Hot', counselor: 'Rina Verma', country: 'Canada', created: '28 May 2026' },
+];
+
+const STAGES = ['New Inquiry', 'Pre-Counseling', '1:1 Counseling', 'Registration'];
+
+const STAGE_COLORS = {
+  'New Inquiry': ['var(--muted)', 'var(--fg)'],
+  'Pre-Counseling': ['var(--muted)', 'var(--fg)'],
+  '1:1 Counseling': ['var(--muted)', 'var(--fg)'],
+  'Mock Test': ['var(--muted)', 'var(--fg)'],
+  'Webinar': ['var(--muted)', 'var(--fg)'],
+  'Registration': ['var(--primary)', 'var(--primaryFg)'],
+  'Post-Counseling': ['var(--primary)', 'var(--primaryFg)'],
+  'Registration Completed': ['var(--primary)', 'var(--primaryFg)'],
+};
+
+const SCORE_COLORS = {
+  Hot: ['var(--destructive)', 'var(--destructiveFg)'],
+  Warm: ['var(--primary)', 'var(--primaryFg)'],
+  Cold: ['var(--muted)', 'var(--mutedFg)'],
+};
+
+function initials(name) {
+  return name.split(' ').map((p) => p[0]).slice(0, 2).join('');
+}
+
+class Component extends DCLogic {
+  state = { mode: 'list' };
+
+  renderVals() {
+    const mode = this.state.mode;
+    const selectLead = this.props.selectLead || (() => {});
+
+    const btnBase = 'height:28px;padding:0 13px;border-radius:6px;border:none;font-size:12.5px;font-weight:600;cursor:pointer;';
+
+    const leads = LEADS.map((l) => {
+      const [sBg, sFg] = STAGE_COLORS[l.stage];
+      const [scBg, scFg] = SCORE_COLORS[l.score];
+      return { ...l, stageBg: sBg, stageFg: sFg, scoreBg: scBg, scoreFg: scFg, onClick: () => selectLead(l.id) };
+    });
+
+    const columns = STAGES.map((stage) => {
+      const cards = LEADS.filter((l) => l.stage === stage).map((l) => {
+        const [scBg, scFg] = SCORE_COLORS[l.score];
+        return { name: l.name, country: l.country, score: l.score, scoreBg: scBg, scoreFg: scFg, initials: initials(l.counselor), onClick: () => selectLead(l.id) };
+      });
+      return { title: stage, dot: stage === 'Registration' ? 'var(--primary)' : 'var(--mutedFg)', count: cards.length, cards };
+    });
+
+    return {
+      isList: mode === 'list',
+      isKanban: mode === 'kanban',
+      setListMode: () => this.setState({ mode: 'list' }),
+      setKanbanMode: () => this.setState({ mode: 'kanban' }),
+      listBtnStyle: btnBase + (mode === 'list' ? 'background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06);' : 'background:transparent;color:var(--mutedFg);'),
+      kanbanBtnStyle: btnBase + (mode === 'kanban' ? 'background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06);' : 'background:transparent;color:var(--mutedFg);'),
+      headStyle: 'font-size:11px;font-weight:600;color:var(--mutedFg);text-transform:uppercase;letter-spacing:.03em;',
+      leads,
+      columns,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

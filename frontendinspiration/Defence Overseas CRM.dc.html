@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; }
+    ::-webkit-scrollbar { width:9px; height:9px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius:5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    * { font-family: 'Sora', system-ui, sans-serif !important; font-weight: 500; }
+    b, strong { font-weight: 700 !important; }
+  </style>
+</helmet>
+
+<div style="{{ rootStyle }}">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+  <!-- ================= LOGIN ================= -->
+  <div style="display:flex;min-height:100vh;background:var(--bg);color:var(--fg);font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
+    <div style="flex:1.1;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,#0F5132,#052E1B);padding:56px;color:#fff;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="assets/logo.webp" style="width:34px;height:34px;border-radius:9px;object-fit:cover;" alt="Defence Overseas" />
+        <div style="font-weight:700;font-size:15px;letter-spacing:.2px;">Defence Overseas</div>
+      </div>
+      <div style="max-width:420px;">
+        <div style="font-size:34px;font-weight:800;line-height:1.2;letter-spacing:-.02em;">Run your entire study-abroad pipeline in one place.</div>
+        <div style="margin-top:14px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.75);">Leads, students, applications, payments and follow-ups — tracked end to end for every counselor on the team.</div>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);">© 2026 Defence Overseas. Internal use only.</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:32px;">
+      <div style="width:100%;max-width:360px;">
+        <div style="font-size:22px;font-weight:700;margin-bottom:6px;">Sign in</div>
+        <div style="font-size:13.5px;color:var(--mutedFg);margin-bottom:28px;">Use your work email to access the CRM.</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="font-size:12.5px;font-weight:600;color:var(--fg);display:block;margin-bottom:6px;">Email</label>
+            <input value="rina.verma@defenceoverseas.in" readonly style="width:100%;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);padding:0 12px;font-size:13.5px;font-family:inherit;" />
+          </div>
+          <div>
+            <label style="font-size:12.5px;font-weight:600;color:var(--fg);display:block;margin-bottom:6px;">Password</label>
+            <input type="password" value="••••••••••" readonly style="width:100%;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);padding:0 12px;font-size:13.5px;font-family:inherit;" />
+          </div>
+          <button onclick="{{ login }}" style="height:38px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:6px;">Sign in</button>
+          <div style="text-align:center;font-size:12.5px;color:var(--mutedFg);margin-top:2px;">Forgot password? Contact your admin.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+<!-- ================= APP SHELL ================= -->
+<div style="{{ appOuterStyle }}">
+<div style="{{ appShellStyle }}">
+
+  <!-- SIDEBAR -->
+  <aside style="{{ sidebarStyle }}">
+    <div style="{{ logoRowStyle }}">
+      <img src="assets/logo.webp" style="width:30px;height:30px;border-radius:7px;object-fit:cover;flex-shrink:0;" alt="Defence Overseas" />
+      <sc-if value="{{ sidebarExpanded }}" hint-placeholder-val="{{ true }}">
+        <div style="min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Defence Overseas</div>
+          <div style="font-size:11px;color:var(--mutedFg);">CRM</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <nav style="flex:1;padding:8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="7">
+        <div onclick="{{ item.onClick }}" style="{{ item.style }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+            <sc-if value="{{ item.isDashboard }}"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></sc-if>
+            <sc-if value="{{ item.isLeads }}"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.2 2.8-5.5 6-5.5s6 2.3 6 5.5"></path><path d="M16 4.2c1.5.4 2.5 1.7 2.5 3.3 0 1.5-1 2.9-2.5 3.3"></path><path d="M17.5 14.8c1.9.6 3.2 2.4 3.2 4.4"></path></sc-if>
+            <sc-if value="{{ item.isStudents }}"><path d="M12 3 2 8l10 5 10-5-10-5Z"></path><path d="M6 10.5V16c0 1.4 2.7 2.7 6 2.7s6-1.3 6-2.7v-5.5"></path></sc-if>
+            <sc-if value="{{ item.isTasks }}"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12.5l2.5 2.5L16 9"></path></sc-if>
+            <sc-if value="{{ item.isFollowups }}"><rect x="3" y="4.5" width="18" height="16" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></sc-if>
+            <sc-if value="{{ item.isReports }}"><line x1="4" y1="20" x2="20" y2="20"></line><rect x="6" y="11" width="3" height="8"></rect><rect x="10.5" y="6" width="3" height="13"></rect><rect x="15" y="14" width="3" height="5"></rect></sc-if>
+            <sc-if value="{{ item.isEmployees }}"><rect x="4" y="3" width="16" height="18" rx="1.5"></rect><line x1="8" y1="8" x2="8" y2="8"></line><line x1="12" y1="8" x2="12" y2="8"></line><line x1="16" y1="8" x2="16" y2="8"></line><line x1="8" y1="12" x2="8" y2="12"></line><line x1="12" y1="12" x2="12" y2="12"></line><line x1="16" y1="12" x2="16" y2="12"></line><line x1="9" y1="21" x2="9" y2="16.5"></line><line x1="15" y1="21" x2="15" y2="16.5"></line></sc-if>
+          </svg>
+          <sc-if value="{{ sidebarExpanded }}" hint-placeholder-val="{{ true }}"><span style="white-space:nowrap;">{{ item.label }}</span></sc-if>
+        </div>
+      </sc-for>
+    </nav>
+
+    <div style="border-top:1px solid var(--border);padding:8px;">
+      <button onclick="{{ toggleSidebar }}" style="width:100%;height:32px;border:none;background:transparent;color:var(--mutedFg);font-size:11.5px;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:{{ collapseJustify }};gap:6px;">
+        <sc-if value="{{ sidebarExpanded }}" hint-placeholder-val="{{ true }}"><span>Collapse</span></sc-if>
+        <span>{{ collapseArrow }}</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN COLUMN -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+
+    <!-- TOPBAR -->
+    <header style="height:60px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 20px;background:var(--bg);">
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mutedFg);">
+        <span>Defence Overseas</span>
+        <span>/</span>
+        <span style="color:var(--fg);font-weight:600;">{{ breadcrumb }}</span>
+      </div>
+      <div style="position:relative;display:flex;align-items:center;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:11px;color:var(--mutedFg);"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.6" y2="16.6"></line></svg>
+        <input placeholder="Search leads, students…" style="width:230px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--muted);padding:0 12px 0 32px;font-size:13px;color:var(--fg);font-family:inherit;" />
+      </div>
+      <button onclick="{{ toggleTheme }}" title="Toggle theme" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8Z"></path></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="1.5" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22.5"></line><line x1="4" y1="12" x2="1.5" y2="12"></line><line x1="22.5" y1="12" x2="20" y2="12"></line></svg>
+        </sc-if>
+      </button>
+      <button style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);position:relative;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8"></path><path d="M13.7 21a2 2 0 01-3.4 0"></path></svg>
+        <span style="position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--danger);border:1.5px solid var(--card);"></span>
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:8px;border-left:1px solid var(--border);">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--secondaryFg);">RV</div>
+        <sc-if value="{{ sidebarExpanded }}" hint-placeholder-val="{{ true }}">
+          <div style="line-height:1.25;min-width:92px;white-space:nowrap;">
+            <div style="font-size:12.5px;font-weight:600;">Rina Verma</div>
+            <div style="font-size:11px;color:var(--mutedFg);">Admin</div>
+          </div>
+        </sc-if>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main style="flex:1;overflow-y:auto;padding:28px 32px 60px;">
+
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <dc-import name="DashboardView" theme="{{ theme }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isLeads }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="LeadsView" theme="{{ theme }}" select-lead="{{ selectLead }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isLeadDetail }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="LeadDetailView" theme="{{ theme }}" lead="{{ selectedLead }}" go-back="{{ backToLeads }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isStudents }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="StudentsView" theme="{{ theme }}" select-student="{{ selectStudent }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isStudentDetail }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="StudentDetailView" theme="{{ theme }}" student="{{ selectedStudent }}" go-back="{{ backToStudents }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="TasksView" theme="{{ theme }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="ReportsView" theme="{{ theme }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ isEmployees }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="EmployeesView" theme="{{ theme }}" hint-size="100%,800px"></dc-import>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const NAV = [
+  { id: 'dashboard', label: 'Dashboard', key: 'isDashboard' },
+  { id: 'leads', label: 'Leads', key: 'isLeads' },
+  { id: 'students', label: 'Students', key: 'isStudents' },
+  { id: 'tasks', label: 'Tasks', key: 'isTasks' },
+  { id: 'followups', label: 'Follow-ups', key: 'isFollowups' },
+  { id: 'reports', label: 'Reports', key: 'isReports' },
+  { id: 'employees', label: 'Employees', key: 'isEmployees' },
+];
+
+const LEADS = [
+  { id: 'l1', name: 'Aditya Sharma', phone: '+91 98200 11234', stage: 'New Inquiry', score: 'Hot', counselor: 'Rina Verma', country: 'Canada', created: '2 Jul 2026' },
+  { id: 'l2', name: 'Priya Nair', phone: '+91 90040 55621', stage: '1:1 Counseling', score: 'Warm', counselor: 'Sameer Joshi', country: 'UK', created: '28 Jun 2026' },
+  { id: 'l3', name: 'Rohan Mehta', phone: '+91 99870 22110', stage: 'Registration', score: 'Hot', counselor: 'Rina Verma', country: 'Australia', created: '19 Jun 2026' },
+  { id: 'l4', name: 'Ishaan Kapoor', phone: '+91 96500 88213', stage: 'Mock Test', score: 'Warm', counselor: 'Anil Kumar', country: 'Germany', created: '15 Jun 2026' },
+  { id: 'l5', name: 'Sneha Reddy', phone: '+91 93810 44902', stage: 'Pre-Counseling', score: 'Cold', counselor: 'Sameer Joshi', country: 'Ireland', created: '10 Jun 2026' },
+  { id: 'l6', name: 'Vikram Singh', phone: '+91 98110 76543', stage: 'Webinar', score: 'Warm', counselor: 'Rina Verma', country: 'USA', created: '6 Jun 2026' },
+  { id: 'l7', name: 'Ananya Iyer', phone: '+91 91760 33987', stage: 'Post-Counseling', score: 'Hot', counselor: 'Anil Kumar', country: 'New Zealand', created: '2 Jun 2026' },
+  { id: 'l8', name: 'Kabir Malhotra', phone: '+91 97110 22456', stage: 'Registration Completed', score: 'Hot', counselor: 'Rina Verma', country: 'Canada', created: '28 May 2026' },
+];
+
+const STUDENTS = [
+  { id: 's1', name: 'Divya Menon', country: 'Canada', university: 'University of Toronto', stage: 'Visa Filed', counselor: 'Rina Verma', fees: 'Partially Paid' },
+  { id: 's2', name: 'Arjun Rao', country: 'UK', university: 'Coventry University', stage: 'Offer Received', counselor: 'Sameer Joshi', fees: 'Fully Paid' },
+  { id: 's3', name: 'Neha Gupta', country: 'Australia', university: 'Deakin University', stage: 'Application Submitted', counselor: 'Anil Kumar', fees: 'Dues Pending' },
+  { id: 's4', name: 'Karan Chopra', country: 'Germany', university: 'TU Munich', stage: 'Visa Approved', counselor: 'Rina Verma', fees: 'Fully Paid' },
+  { id: 's5', name: 'Meera Pillai', country: 'Ireland', university: 'Trinity College Dublin', stage: 'Departed', counselor: 'Sameer Joshi', fees: 'Fully Paid' },
+];
+
+class Component extends DCLogic {
+  state = {
+    view: 'login',
+    theme: 'light',
+    sidebarExpanded: true,
+    selectedLeadId: null,
+    selectedStudentId: null,
+  };
+
+  renderVals() {
+    const s = this.state;
+    const dark = s.theme === 'dark';
+
+    const vars = dark
+      ? '--bg:#070D0A;--fg:#E7F2EB;--card:#0F1A14;--cardFg:#E7F2EB;--muted:#16241C;--mutedFg:#87A395;--border:#213024;--primary:#34D399;--primaryFg:#053322;--secondary:#16241C;--secondaryFg:#E7F2EB;--destructive:#3B1518;--destructiveFg:#F87171;--success:#34D399;--warning:#F59E0B;--danger:#F87171;--info:#2DD4BF;'
+      : '--bg:#F5F8F5;--fg:#102016;--card:#ffffff;--cardFg:#102016;--muted:#EDF4EE;--mutedFg:#5C7267;--border:#DCE8DF;--primary:#16A34A;--primaryFg:#ffffff;--secondary:#E9F5EC;--secondaryFg:#123321;--destructive:#FEE2E2;--destructiveFg:#DC2626;--success:#16A34A;--warning:#D97706;--danger:#DC2626;--info:#0D9488;';
+
+    const rootStyle = vars + 'color-scheme:' + s.theme + ';';
+
+    const appOuterStyle = dark
+      ? 'min-height:100vh;padding:22px;background:#050705;background-image:radial-gradient(650px 380px at 12% 0%,rgba(52,211,153,.35) 0%,rgba(52,211,153,0) 60%),radial-gradient(500px 340px at 92% 8%,rgba(45,180,140,.22) 0%,rgba(45,180,140,0) 55%);'
+      : 'min-height:100vh;padding:0;background:var(--bg);';
+
+    const appShellStyle = dark
+      ? 'display:flex;height:calc(100vh - 36px);overflow:hidden;background:var(--bg);color:var(--fg);border-radius:18px;border:1px solid #1B2E23;box-shadow:0 30px 80px rgba(0,0,0,.45);'
+      : 'display:flex;height:100vh;overflow:hidden;background:var(--bg);color:var(--fg);';
+
+    const navItems = NAV.map((n) => {
+      const active = s.view === n.id;
+      const st = 'display:flex;align-items:center;gap:10px;padding:8px ' + (s.sidebarExpanded ? '10px' : '0') + ';justify-content:' + (s.sidebarExpanded ? 'flex-start' : 'center') + ';border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:' + (active ? 'var(--primaryFg)' : 'var(--mutedFg)') + ';background:' + (active ? 'var(--primary)' : 'transparent') + ';';
+      const obj = { label: n.label, style: st, onClick: () => this.setState({ view: n.id }) };
+      obj.isDashboard = n.id === 'dashboard';
+      obj.isLeads = n.id === 'leads';
+      obj.isStudents = n.id === 'students';
+      obj.isTasks = n.id === 'tasks';
+      obj.isFollowups = n.id === 'followups';
+      obj.isReports = n.id === 'reports';
+      obj.isEmployees = n.id === 'employees';
+      return obj;
+    });
+
+    const breadcrumbMap = {
+      dashboard: 'Dashboard', leads: 'Leads', 'lead-detail': 'Lead detail',
+      students: 'Students', 'student-detail': 'Student detail',
+      tasks: 'Tasks', followups: 'Follow-ups', reports: 'Reports', employees: 'Employees',
+    };
+
+    return {
+      rootStyle,
+      appOuterStyle,
+      appShellStyle,
+      theme: s.theme,
+      isDark: dark,
+      isLight: !dark,
+      isLogin: s.view === 'login',
+      isApp: s.view !== 'login',
+      login: () => this.setState({ view: 'dashboard' }),
+      toggleTheme: () => this.setState({ theme: dark ? 'light' : 'dark' }),
+      sidebarExpanded: s.sidebarExpanded,
+      toggleSidebar: () => this.setState({ sidebarExpanded: !s.sidebarExpanded }),
+      collapseArrow: s.sidebarExpanded ? '\u2039' : '\u203A',
+      collapseJustify: s.sidebarExpanded ? 'flex-end' : 'center',
+      sidebarStyle: 'width:' + (s.sidebarExpanded ? '224px' : '64px') + ';flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .18s ease;',
+      logoRowStyle: 'display:flex;align-items:center;gap:10px;height:56px;padding:0 ' + (s.sidebarExpanded ? '14px' : '0') + ';justify-content:' + (s.sidebarExpanded ? 'flex-start' : 'center') + ';border-bottom:1px solid var(--border);',
+      navItems,
+      breadcrumb: breadcrumbMap[s.view] || '',
+      isDashboard: s.view === 'dashboard',
+      isLeads: s.view === 'leads',
+      isLeadDetail: s.view === 'lead-detail',
+      isStudents: s.view === 'students',
+      isStudentDetail: s.view === 'student-detail',
+      isTasks: s.view === 'tasks',
+      isReports: s.view === 'reports',
+      isEmployees: s.view === 'employees',
+      selectLead: (id) => this.setState({ selectedLeadId: id, view: 'lead-detail' }),
+      selectStudent: (id) => this.setState({ selectedStudentId: id, view: 'student-detail' }),
+      selectedLead: LEADS.find((l) => l.id === s.selectedLeadId) || LEADS[0],
+      selectedStudent: STUDENTS.find((x) => x.id === s.selectedStudentId) || STUDENTS[0],
+      backToLeads: () => this.setState({ view: 'leads' }),
+      backToStudents: () => this.setState({ view: 'students' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

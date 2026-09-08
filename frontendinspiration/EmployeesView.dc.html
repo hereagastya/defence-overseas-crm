@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="display:flex;flex-direction:column;gap:18px;max-width:1300px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-.01em;">Employees</div>
+      <div style="font-size:13.5px;color:var(--mutedFg);margin-top:3px;">Manage team access and roles</div>
+    </div>
+    <button style="height:34px;padding:0 16px;border-radius:8px;border:none;background:var(--primary);color:var(--primaryFg);font-size:13px;font-weight:600;cursor:pointer;">+ Add Employee</button>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:1.6fr 1.2fr 1.2fr 1fr 0.8fr;padding:10px 18px;background:var(--muted);border-bottom:1px solid var(--border);">
+      <span style="{{ headStyle }}">Name</span><span style="{{ headStyle }}">Role</span><span style="{{ headStyle }}">Email</span><span style="{{ headStyle }}">Leads Assigned</span><span style="{{ headStyle }}">Status</span>
+    </div>
+    <sc-for list="{{ employees }}" as="e" hint-placeholder-count="5">
+      <div style="display:grid;grid-template-columns:1.6fr 1.2fr 1.2fr 1fr 0.8fr;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;">
+        <span style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;">
+          <span style="width:26px;height:26px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0;">{{ e.initials }}</span>
+          {{ e.name }}
+        </span>
+        <span><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--muted);">{{ e.role }}</span></span>
+        <span style="font-size:12.5px;color:var(--mutedFg);">{{ e.email }}</span>
+        <span style="font-size:12.5px;color:var(--mutedFg);">{{ e.leads }}</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mutedFg);"><span style="width:7px;height:7px;border-radius:50%;background:{{ e.statusDot }};"></span>{{ e.status }}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const EMPLOYEES = [
+  { name: 'Rina Verma', role: 'Admin', email: 'rina.verma@defenceoverseas.in', leads: 64, status: 'Active' },
+  { name: 'Sameer Joshi', role: 'Counselor', email: 'sameer.joshi@defenceoverseas.in', leads: 52, status: 'Active' },
+  { name: 'Anil Kumar', role: 'Counselor', email: 'anil.kumar@defenceoverseas.in', leads: 41, status: 'Active' },
+  { name: 'Pooja Iyer', role: 'Admin', email: 'pooja.iyer@defenceoverseas.in', leads: 18, status: 'Active' },
+  { name: 'Meera Pillai', role: 'Documentation Officer', email: 'meera.pillai@defenceoverseas.in', leads: 0, status: 'Inactive' },
+];
+
+function initials(name) {
+  return (name || '').split(' ').map((p) => p[0]).slice(0, 2).join('');
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const employees = EMPLOYEES.map((e) => ({
+      ...e,
+      initials: initials(e.name),
+      statusDot: e.status === 'Active' ? 'var(--success)' : 'var(--mutedFg)',
+    }));
+    return {
+      headStyle: 'font-size:11px;font-weight:600;color:var(--mutedFg);text-transform:uppercase;letter-spacing:.03em;',
+      employees,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

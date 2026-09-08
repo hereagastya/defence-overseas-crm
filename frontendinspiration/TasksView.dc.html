@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="display:flex;flex-direction:column;gap:18px;max-width:1300px;">
+  <div>
+    <div style="font-size:22px;font-weight:700;letter-spacing:-.01em;">Tasks &amp; Follow-ups</div>
+    <div style="font-size:13.5px;color:var(--mutedFg);margin-top:3px;">Everything the team needs to action, in one queue</div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);flex:1;">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+        <div onclick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
+      </sc-for>
+    </div>
+    <button style="height:34px;padding:0 16px;border-radius:8px;border:none;background:var(--primary);color:var(--primaryFg);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-left:14px;">{{ addLabel }}</button>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+    <sc-for list="{{ items }}" as="i" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);">
+        <div style="width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border);flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ i.title }}</div>
+          <div style="font-size:12px;color:var(--mutedFg);margin-top:3px;">{{ i.subject }}</div>
+        </div>
+        <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:{{ i.priBg }};color:{{ i.priFg }};flex-shrink:0;">{{ i.priority }}</span>
+        <span style="font-size:12.5px;color:var(--mutedFg);width:130px;flex-shrink:0;">{{ i.due }}</span>
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--mutedFg);flex-shrink:0;">{{ i.initials }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const TASKS = [
+  { title: 'Send university shortlist', subject: 'Aditya Sharma', priority: 'High', due: 'Today, 4:00 PM', owner: 'Rina Verma' },
+  { title: 'Prepare SOP feedback', subject: 'Divya Menon', priority: 'Medium', due: 'Tomorrow', owner: 'Sameer Joshi' },
+  { title: 'Verify bank statement', subject: 'Neha Gupta', priority: 'High', due: '16 Jul 2026', owner: 'Anil Kumar' },
+  { title: 'Collect installment 3', subject: 'Karan Chopra', priority: 'Medium', due: '18 Jul 2026', owner: 'Rina Verma' },
+  { title: 'Schedule mock interview', subject: 'Ishaan Kapoor', priority: 'Low', due: '20 Jul 2026', owner: 'Anil Kumar' },
+  { title: 'Chase visa document set', subject: 'Meera Pillai', priority: 'High', due: '22 Jul 2026', owner: 'Sameer Joshi' },
+];
+
+const FOLLOWUPS = [
+  { title: 'Call to confirm IELTS booking', subject: 'Sneha Reddy', priority: 'Medium', due: 'Today, 2:00 PM', owner: 'Sameer Joshi' },
+  { title: 'Webinar reminder call', subject: 'Vikram Singh', priority: 'Low', due: 'Today, 5:30 PM', owner: 'Rina Verma' },
+  { title: 'Follow up on registration fee', subject: 'Rohan Mehta', priority: 'High', due: 'Tomorrow, 11:00 AM', owner: 'Rina Verma' },
+  { title: 'Check in post one-to-one session', subject: 'Priya Nair', priority: 'Medium', due: '16 Jul 2026', owner: 'Sameer Joshi' },
+];
+
+const PRI_COLORS = {
+  High: ['var(--destructive)', 'var(--destructiveFg)'],
+  Medium: ['var(--warning)', '#fff'],
+  Low: ['var(--muted)', 'var(--mutedFg)'],
+};
+
+function initials(name) {
+  return (name || '').split(' ').map((p) => p[0]).slice(0, 2).join('');
+}
+
+class Component extends DCLogic {
+  state = { tab: 'tasks' };
+
+  renderVals() {
+    const tab = this.state.tab;
+    const source = tab === 'tasks' ? TASKS : FOLLOWUPS;
+
+    const tabs = [
+      { id: 'tasks', label: 'Tasks' },
+      { id: 'followups', label: 'Follow-ups' },
+    ].map((t) => {
+      const active = tab === t.id;
+      return {
+        label: t.label,
+        onClick: () => this.setState({ tab: t.id }),
+        style: 'padding:9px 4px;margin-right:22px;font-size:13px;font-weight:600;cursor:pointer;color:' + (active ? 'var(--fg)' : 'var(--mutedFg)') + ';border-bottom:2px solid ' + (active ? 'var(--primary)' : 'transparent') + ';',
+      };
+    });
+
+    const items = source.map((i) => {
+      const [pBg, pFg] = PRI_COLORS[i.priority];
+      return { ...i, priBg: pBg, priFg: pFg, initials: initials(i.owner) };
+    });
+
+    return {
+      tabs,
+      items,
+      addLabel: tab === 'tasks' ? '+ Add Task' : '+ Add Follow-up',
+    };
+  }
+}
+
+</script>
+</body>
+</html>

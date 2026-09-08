@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<div style="display:flex;flex-direction:column;gap:22px;max-width:1400px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;">Good morning, Rina</div>
+      <div style="font-size:14.5px;color:var(--mutedFg);margin-top:5px;">Here's what's happening across your pipeline today.</div>
+    </div>
+    <button style="height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;cursor:pointer;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"></path><path d="M21 3v6h-6"></path></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px 24px 22px;position:relative;box-shadow:0 1px 0 rgba(255,255,255,.02) inset;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="width:40px;height:40px;border-radius:12px;background:var(--muted);display:flex;align-items:center;justify-content:center;color:var(--primary);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <sc-if value="{{ k.iconRate }}"><circle cx="12" cy="12" r="8.5"></circle><path d="M9 12l2 2 4-4.5"></path></sc-if>
+              <sc-if value="{{ k.iconUsers }}"><circle cx="9" cy="8.5" r="3"></circle><path d="M3.5 19c0-3 2.6-5 5.5-5s5.5 2 5.5 5"></path><path d="M15.5 5c1.4.4 2.3 1.6 2.3 3s-.9 2.6-2.3 3"></path><path d="M17 14.3c1.7.6 2.8 2.1 2.8 4"></path></sc-if>
+              <sc-if value="{{ k.iconGrad }}"><path d="M12 3 3 7.5l9 4.5 9-4.5-9-4.5Z"></path><path d="M7 10v4.5c0 1.2 2.2 2.3 5 2.3s5-1.1 5-2.3V10"></path></sc-if>
+              <sc-if value="{{ k.iconCheck }}"><rect x="3.5" y="3.5" width="17" height="17" rx="4"></rect><path d="M8 12.2l2.6 2.6L16.5 9"></path></sc-if>
+              <sc-if value="{{ k.iconCalendar }}"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"></rect><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"></line><line x1="8" y1="3" x2="8" y2="6.5"></line><line x1="16" y1="3" x2="16" y2="6.5"></line></sc-if>
+            </svg>
+          </div>
+          <sc-if value="{{ k.trend }}" hint-placeholder-val="{{ true }}">
+            <span style="display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:99px;background:{{ k.trendBg }};color:{{ k.trendColor }};">{{ k.trendArrow }} {{ k.trend }}</span>
+          </sc-if>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--mutedFg);margin-top:18px;">{{ k.label }}</div>
+        <div style="font-size:30px;font-weight:800;margin-top:7px;letter-spacing:-.01em;">{{ k.value }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;">
+    <sc-for list="{{ barCharts }}" as="c" hint-placeholder-count="3">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 26px;min-width:0;">
+        <div style="font-size:15.5px;font-weight:700;margin-bottom:18px;">{{ c.title }}</div>
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+          <sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+              <span style="width:104px;flex-shrink:0;text-align:right;font-size:13px;color:var(--mutedFg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.label }}</span>
+              <div style="flex:1;min-width:0;height:9px;border-radius:5px;background:var(--muted);overflow:hidden;">
+                <div style="height:100%;border-radius:5px;background:var(--primary);width:{{ r.pct }};"></div>
+              </div>
+              <span style="width:28px;flex-shrink:0;font-size:13px;font-weight:700;">{{ r.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 26px;">
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:18px;">Monthly Revenue (12 mo.)</div>
+      <div style="display:flex;align-items:flex-end;gap:7px;height:150px;">
+        <sc-for list="{{ revenue }}" as="m" hint-placeholder-count="12">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
+            <div style="width:100%;border-radius:4px 4px 0 0;background:var(--primary);opacity:.8;height:{{ m.pct }};"></div>
+            <span style="font-size:10.5px;color:var(--mutedFg);font-weight:600;">{{ m.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 26px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:15.5px;font-weight:700;">Upcoming Follow-ups</div>
+        <span style="font-size:12.5px;color:var(--mutedFg);">Next 7 days</span>
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ followups }}" as="f" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px;background:var(--muted);color:var(--fg);flex-shrink:0;">{{ f.type }}</span>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ f.name }}</div>
+              <div style="font-size:12.5px;color:var(--mutedFg);margin-top:1px;">{{ f.owner }}</div>
+            </div>
+            <span style="font-size:12.5px;color:var(--mutedFg);flex-shrink:0;">{{ f.when }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 26px;">
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:16px;">Recent Activity</div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+          <div style="display:flex;gap:12px;">
+            <div style="width:29px;height:29px;border-radius:50%;background:var(--muted);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--mutedFg);flex-shrink:0;">{{ a.initial }}</div>
+            <div style="min-width:0;">
+              <div style="font-size:14px;"><span style="font-weight:700;">{{ a.actor }}</span> <span style="color:var(--mutedFg);font-weight:500;">{{ a.action }}</span></div>
+              <div style="font-size:12.5px;color:var(--mutedFg);margin-top:3px;">{{ a.when }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      kpis: [
+        { label: 'Lead Conversion Rate', value: '24%', iconRate: true },
+        { label: 'Leads This Month', value: '86', iconUsers: true, trend: '12%', trendArrow: '\u2191', trendColor: 'var(--success)', trendBg: 'var(--muted)' },
+        { label: 'Students Enrolled', value: '19', iconGrad: true, trend: '8%', trendArrow: '\u2191', trendColor: 'var(--success)', trendBg: 'var(--muted)' },
+        { label: 'Tasks Completed', value: '142', iconCheck: true },
+        { label: 'Follow-ups Completed', value: '97', iconCalendar: true },
+      ],
+      barCharts: [
+        {
+          title: 'Leads by Stage',
+          rows: [
+            { label: 'New Inquiry', value: 28, pct: '100%' },
+            { label: 'Pre-Counseling', value: 21, pct: '75%' },
+            { label: '1:1 Counseling', value: 16, pct: '57%' },
+            { label: 'Registration', value: 12, pct: '43%' },
+            { label: 'Converted', value: 9, pct: '32%' },
+          ],
+        },
+        {
+          title: 'Leads by Source',
+          rows: [
+            { label: 'Instagram Ads', value: 34, pct: '100%' },
+            { label: 'Referral', value: 22, pct: '65%' },
+            { label: 'Walk-in', value: 15, pct: '44%' },
+            { label: 'Google Ads', value: 10, pct: '29%' },
+            { label: 'Webinar', value: 5, pct: '15%' },
+          ],
+        },
+      ],
+      revenue: [
+        { label: 'Aug', pct: '38%' }, { label: 'Sep', pct: '52%' }, { label: 'Oct', pct: '46%' },
+        { label: 'Nov', pct: '61%' }, { label: 'Dec', pct: '70%' }, { label: 'Jan', pct: '58%' },
+        { label: 'Feb', pct: '64%' }, { label: 'Mar', pct: '80%' }, { label: 'Apr', pct: '72%' },
+        { label: 'May', pct: '90%' }, { label: 'Jun', pct: '84%' }, { label: 'Jul', pct: '100%' },
+      ],
+      followups: [
+        { type: 'Call', name: 'Aditya Sharma', owner: 'Rina Verma', when: 'Today, 3:00 PM' },
+        { type: 'Meeting', name: 'Priya Nair', owner: 'Sameer Joshi', when: 'Today, 5:30 PM' },
+        { type: 'Email', name: 'Ishaan Kapoor', owner: 'Anil Kumar', when: 'Tomorrow, 11:00 AM' },
+        { type: 'Call', name: 'Sneha Reddy', owner: 'Sameer Joshi', when: '16 Jul, 2:00 PM' },
+      ],
+      activity: [
+        { initial: 'RV', actor: 'Rina Verma', action: 'moved Rohan Mehta to Registration', when: '12m ago' },
+        { initial: 'SJ', actor: 'Sameer Joshi', action: 'logged a call with Priya Nair', when: '48m ago' },
+        { initial: 'AK', actor: 'Anil Kumar', action: 'uploaded a document for Neha Gupta', when: '2h ago' },
+        { initial: 'S', actor: 'System', action: 'marked 3 follow-ups overdue', when: '3h ago' },
+        { initial: 'RV', actor: 'Rina Verma', action: 'converted Kabir Malhotra to student', when: '5h ago' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
