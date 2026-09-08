@@ -465,7 +465,7 @@ export async function importLeads(
       lead_score,
       lead_stage: LeadStage.NEW_INQUIRY, // always New — never import legacy stage
       notes,
-      assigned_counselor_id: user.id,
+      assigned_counselor_id: null,
     });
 
     if (!parsed.success) {
