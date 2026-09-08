@@ -14,18 +14,22 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon: Icon, iconClass, danger }: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-5">
+    <Card className="rounded-[18px]">
+      <CardContent className="p-6">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className={`text-2xl font-bold ${danger ? 'text-destructive' : 'text-foreground'}`}>
+          <div className="flex flex-col gap-1 mt-[18px]">
+            <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+            <p
+              className={`text-[30px] font-extrabold leading-none tracking-tight ${danger ? 'text-destructive' : 'text-foreground'}`}
+            >
               {value.toLocaleString()}
             </p>
             {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
           </div>
-          <div className={`rounded-lg p-2 ${iconClass ?? 'bg-primary/10'}`}>
-            <Icon className={`h-5 w-5 ${danger ? 'text-destructive' : 'text-primary'}`} />
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-[12px] ${iconClass ?? 'bg-muted'}`}
+          >
+            <Icon className={`h-[18px] w-[18px] ${danger ? 'text-destructive' : 'text-primary'}`} />
           </div>
         </div>
       </CardContent>
@@ -35,7 +39,7 @@ function StatCard({ label, value, sub, icon: Icon, iconClass, danger }: StatCard
 
 function StatCardSkeleton() {
   return (
-    <Card>
+    <Card className="rounded-[18px]">
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">

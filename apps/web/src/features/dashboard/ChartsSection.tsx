@@ -88,7 +88,7 @@ interface Props {
 export function ChartsSection({ data, isLoading }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Leads by Stage</CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ export function ChartsSection({ data, isLoading }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Leads by Source</CardTitle>
         </CardHeader>
@@ -114,7 +114,7 @@ export function ChartsSection({ data, isLoading }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Students by Stage</CardTitle>
         </CardHeader>
@@ -130,7 +130,7 @@ export function ChartsSection({ data, isLoading }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Monthly Revenue (12 mo.)</CardTitle>
         </CardHeader>

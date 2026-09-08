@@ -55,7 +55,7 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-[7px] px-2 py-2 text-sm font-medium transition-colors',
                   'hover:bg-accent hover:text-accent-foreground',
                   isActive
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
@@ -86,7 +86,7 @@ export function Sidebar() {
     <aside
       className={cn(
         'hidden lg:flex flex-col border-r bg-card transition-all duration-300',
-        sidebarCollapsed ? 'w-16' : 'w-60',
+        sidebarCollapsed ? 'w-16' : 'w-56',
       )}
     >
       {/* Logo */}
@@ -97,14 +97,18 @@ export function Sidebar() {
         )}
       >
         {sidebarCollapsed ? (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">DO</span>
-          </div>
+          <img
+            src="/logo.webp"
+            alt="Defence Overseas"
+            className="h-8 w-8 rounded-lg object-cover"
+          />
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">DO</span>
-            </div>
+            <img
+              src="/logo.webp"
+              alt="Defence Overseas"
+              className="h-8 w-8 shrink-0 rounded-lg object-cover"
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">Defence Overseas</p>
               <p className="text-xs text-muted-foreground">CRM</p>

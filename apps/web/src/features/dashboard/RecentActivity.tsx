@@ -51,7 +51,7 @@ interface Props {
 
 export function RecentActivity({ data, isLoading }: Props) {
   return (
-    <Card>
+    <Card className="rounded-2xl">
       <CardHeader className="flex flex-row items-center gap-2">
         <Activity className="h-4 w-4 text-muted-foreground" />
         <CardTitle className="text-base">Recent Activity</CardTitle>

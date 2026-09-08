@@ -194,7 +194,7 @@ export function LeadListPage() {
       header: 'Name',
       sortable: true,
       cell: (row) => (
-        <Link to={`/leads/${row.id}`} className="font-medium hover:underline">
+        <Link to={`/leads/${row.id}`} className="font-semibold text-primary hover:underline">
           {row.full_name}
         </Link>
       ),

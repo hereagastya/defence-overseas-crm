@@ -259,9 +259,11 @@ export function Topbar() {
         <SheetContent side="left" className="w-72 p-0">
           <div className="flex h-16 items-center border-b px-4">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">DO</span>
-              </div>
+              <img
+                src="/logo.webp"
+                alt="Defence Overseas"
+                className="h-8 w-8 shrink-0 rounded-lg object-cover"
+              />
               <div>
                 <p className="text-sm font-semibold text-foreground">Defence Overseas</p>
                 <p className="text-xs text-muted-foreground">CRM</p>

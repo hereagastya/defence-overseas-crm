@@ -41,7 +41,7 @@ interface KPICardProps {
 
 function KPICard({ title, value, children }: KPICardProps) {
   return (
-    <Card>
+    <Card className="rounded-2xl">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       </CardHeader>
@@ -55,7 +55,7 @@ function KPICard({ title, value, children }: KPICardProps) {
 
 function KPICardSkeleton() {
   return (
-    <Card>
+    <Card className="rounded-2xl">
       <CardHeader className="pb-2">
         <Skeleton className="h-4 w-36" />
       </CardHeader>

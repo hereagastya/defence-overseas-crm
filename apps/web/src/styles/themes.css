@@ -1,95 +1,98 @@
 /*
  * Design token CSS variables — light and dark mode
- * Maps to the UI/UX Specification §2.1–2.3 color palette.
- * Referenced by tailwind.config.ts via hsl(var(--token)).
+ * Green palette matching Defence Overseas CRM design spec.
  *
- * HSL values derived from the specification hex codes:
- *   #F8FAFC → 210 40% 98%   (slate-50)
- *   #FFFFFF → 0 0% 100%
- *   #0F172A → 222 84% 5%    (slate-900)
- *   #1E293B → 215 28% 17%   (slate-800)
- *   #F1F5F9 → 210 40% 96%   (slate-100)
- *   #475569 → 215 19% 35%   (slate-600)
- *   #94A3B8 → 215 16% 47%   (slate-400)
- *   #E2E8F0 → 214 32% 91%   (slate-200)
- *   #334155 → 215 25% 27%   (slate-700)
- *   #2563EB → 217 91% 60%   (blue-600)
- *   #3B82F6 → 217 91% 60%   (blue-500)
+ * HSL values derived from design hex codes:
+ *   #F5F8F5 → 120 18% 97%   (bg light)
+ *   #102016 → 143 33% 9%    (fg dark green)
+ *   #EDF4EE → 129 25% 94%   (muted)
+ *   #5C7267 → 150 11% 40%   (muted fg)
+ *   #DCE8DF → 135 21% 89%   (border)
+ *   #16A34A → 142 76% 36%   (primary green)
+ *   #E9F5EC → 134 38% 94%   (secondary)
+ *   #123321 → 147 47% 14%   (secondary fg)
+ *   Dark: #070D0A → 150 31% 4%  (bg)
+ *   Dark: #0F1A14 → 147 27% 8%  (card)
+ *   Dark: #16241C → 146 24% 11% (muted)
+ *   Dark: #87A395 → 150 13% 58% (muted fg)
+ *   Dark: #213024 → 132 19% 16% (border)
+ *   Dark: #34D399 → 158 64% 52% (primary)
+ *   Dark: #053322 → 158 82% 11% (primary fg)
  */
 
 :root {
   /* Backgrounds */
-  --background: 210 40% 98%;
-  --foreground: 222 84% 5%;
+  --background: 120 18% 97%;
+  --foreground: 143 33% 9%;
 
   /* Card / Surface */
   --card: 0 0% 100%;
-  --card-foreground: 222 84% 5%;
+  --card-foreground: 143 33% 9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 84% 5%;
+  --popover-foreground: 143 33% 9%;
 
-  /* Primary — brand blue */
-  --primary: 217 91% 60%;
+  /* Primary — brand green */
+  --primary: 142 76% 36%;
   --primary-foreground: 0 0% 100%;
 
   /* Secondary */
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 134 38% 94%;
+  --secondary-foreground: 147 47% 14%;
 
   /* Muted / disabled */
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 129 25% 94%;
+  --muted-foreground: 150 11% 40%;
 
   /* Accent */
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
+  --accent: 129 25% 94%;
+  --accent-foreground: 147 47% 14%;
 
   /* Destructive / danger */
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
   /* Borders / Inputs */
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 217 91% 60%;
+  --border: 135 21% 89%;
+  --input: 135 21% 89%;
+  --ring: 142 76% 36%;
 
   /* Border radius base */
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 }
 
 .dark {
   /* Backgrounds */
-  --background: 222 84% 5%;
-  --foreground: 210 40% 96%;
+  --background: 150 31% 4%;
+  --foreground: 142 29% 93%;
 
   /* Card / Surface */
-  --card: 215 28% 17%;
-  --card-foreground: 210 40% 96%;
-  --popover: 215 28% 17%;
-  --popover-foreground: 210 40% 96%;
+  --card: 147 27% 8%;
+  --card-foreground: 142 29% 93%;
+  --popover: 147 27% 8%;
+  --popover-foreground: 142 29% 93%;
 
-  /* Primary — slightly lighter blue in dark mode */
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary — emerald green in dark mode */
+  --primary: 158 64% 52%;
+  --primary-foreground: 158 82% 11%;
 
   /* Secondary */
-  --secondary: 215 25% 27%;
-  --secondary-foreground: 210 40% 96%;
+  --secondary: 146 24% 11%;
+  --secondary-foreground: 142 29% 93%;
 
   /* Muted / disabled */
-  --muted: 215 25% 27%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 146 24% 11%;
+  --muted-foreground: 150 13% 58%;
 
   /* Accent */
-  --accent: 215 25% 27%;
-  --accent-foreground: 210 40% 96%;
+  --accent: 146 24% 11%;
+  --accent-foreground: 142 29% 93%;
 
   /* Destructive / danger */
   --destructive: 0 63% 31%;
   --destructive-foreground: 0 0% 100%;
 
   /* Borders / Inputs */
-  --border: 215 25% 27%;
-  --input: 215 25% 27%;
-  --ring: 217 91% 60%;
+  --border: 132 19% 16%;
+  --input: 132 19% 16%;
+  --ring: 158 64% 52%;
 }
