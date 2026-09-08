@@ -55,12 +55,11 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-[7px] px-2 py-2 text-sm font-medium transition-colors',
-                  'hover:bg-accent hover:text-accent-foreground',
+                  'flex w-full items-center gap-3 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150',
+                  collapsed ? 'justify-center px-2' : 'px-3',
                   isActive
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                    : 'text-foreground/60',
-                  collapsed && 'justify-center px-2',
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )
               }
             >
