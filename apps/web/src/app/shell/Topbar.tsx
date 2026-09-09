@@ -256,8 +256,12 @@ export function Topbar() {
 
       {/* Mobile sidebar sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <div className="flex h-16 items-center border-b px-4">
+        <SheetContent
+          side="left"
+          className="w-72 border-r-0 p-0"
+          style={{ background: 'hsl(147 47% 7%)' }}
+        >
+          <div className="flex h-16 items-center border-b border-white/10 px-4">
             <div className="flex items-center gap-2.5">
               <img
                 src="/logo.webp"
@@ -265,8 +269,8 @@ export function Topbar() {
                 className="h-8 w-8 shrink-0 rounded-lg object-cover"
               />
               <div>
-                <p className="text-sm font-semibold text-foreground">Defence Overseas</p>
-                <p className="text-xs text-muted-foreground">CRM</p>
+                <p className="text-sm font-semibold text-white/90">Defence Overseas</p>
+                <p className="text-xs text-white/40">CRM</p>
               </div>
             </div>
           </div>

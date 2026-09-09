@@ -55,11 +55,11 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'flex w-full items-center gap-3 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150',
+                  'flex w-full items-center gap-3 rounded-lg py-2 text-[13px] font-medium transition-all duration-150',
                   collapsed ? 'justify-center px-2' : 'px-3',
                   isActive
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/60 hover:bg-white/10 hover:text-white/90',
                 )
               }
             >
@@ -84,14 +84,15 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col border-r bg-card transition-all duration-300',
+        'hidden lg:flex flex-col border-r border-white/10 transition-all duration-300',
         sidebarCollapsed ? 'w-16' : 'w-56',
       )}
+      style={{ background: 'hsl(147 47% 7%)' }}
     >
       {/* Logo */}
       <div
         className={cn(
-          'flex h-16 items-center border-b px-4',
+          'flex h-16 items-center border-b border-white/10 px-4',
           sidebarCollapsed && 'justify-center px-2',
         )}
       >
@@ -109,8 +110,8 @@ export function Sidebar() {
               className="h-8 w-8 shrink-0 rounded-lg object-cover"
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">Defence Overseas</p>
-              <p className="text-xs text-muted-foreground">CRM</p>
+              <p className="truncate text-sm font-semibold text-white/90">Defence Overseas</p>
+              <p className="text-xs text-white/40">CRM</p>
             </div>
           </div>
         )}
@@ -119,19 +120,22 @@ export function Sidebar() {
       <SidebarNav collapsed={sidebarCollapsed} />
 
       {/* Collapse toggle */}
-      <div className="border-t p-2">
+      <div className="border-t border-white/10 p-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className={cn('w-full', sidebarCollapsed ? 'justify-center px-2' : 'justify-end')}
+          className={cn(
+            'w-full text-white/50 hover:bg-white/10 hover:text-white/80',
+            sidebarCollapsed ? 'justify-center px-2' : 'justify-end',
+          )}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {sidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
             <>
-              <span className="mr-1 text-xs text-foreground/60">Collapse</span>
+              <span className="mr-1 text-xs">Collapse</span>
               <ChevronLeft className="h-4 w-4" />
             </>
           )}
