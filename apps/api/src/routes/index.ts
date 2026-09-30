@@ -13,6 +13,7 @@ import followupRoutes from '../modules/followup/followup.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import reportRoutes from '../modules/report/report.routes';
 import webhookMetaRoutes from '../modules/webhook/meta.routes';
+import webhookWebsiteRoutes from '../modules/webhook/website.routes';
 
 export function createRouter(): Router {
   const router = Router();
@@ -34,8 +35,9 @@ export function createRouter(): Router {
   router.use('/follow-ups', followupRoutes);
   router.use('/dashboard', dashboardRoutes);
   router.use('/reports', reportRoutes);
-  // External webhooks — no auth middleware, HMAC-verified per endpoint
+  // External webhooks — no auth middleware, verified per endpoint
   router.use('/webhooks/meta', webhookMetaRoutes);
+  router.use('/webhooks/website', webhookWebsiteRoutes);
 
   return router;
 }
