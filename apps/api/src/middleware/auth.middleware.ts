@@ -73,6 +73,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     // Verify the JWT locally — avoids contaminating supabaseAdmin's GoTrueClient session
     const payload = verifySupabaseJWT(token);
     if (!payload) {
+      console.error('[auth] JWT verification failed — check SUPABASE_JWT_SECRET on Render');
       throw new AppError('UNAUTHORIZED', 401, 'Invalid or expired authentication token');
     }
 
@@ -84,6 +85,12 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       .single();
 
     if (dbError || !crmUser) {
+      console.error(
+        '[auth] User not found in CRM users table — sub:',
+        payload.sub,
+        'dbError:',
+        dbError?.message,
+      );
       throw new AppError('UNAUTHORIZED', 401, 'User account not found in CRM');
     }
 
