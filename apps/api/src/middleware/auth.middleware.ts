@@ -17,45 +17,60 @@ interface JWTPayload {
   exp?: number;
 }
 
+// Supabase migrated to ES256 (ECDSA P-256) signing keys.
+// We fetch the public key from JWKS once and cache it for the lifetime of the process.
+let cachedPublicKey: crypto.KeyObject | null = null;
+
+async function getSupabasePublicKey(): Promise<crypto.KeyObject> {
+  if (cachedPublicKey) return cachedPublicKey;
+  const res = await fetch(`${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`);
+  if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`);
+  type JWK = Record<string, string | string[] | boolean | undefined>;
+  const { keys } = (await res.json()) as { keys: JWK[] };
+  if (!keys?.length) throw new Error('JWKS contains no keys');
+  // crypto.createPublicKey accepts a JWK-shaped object; cast needed because
+  // JsonWebKey is a DOM global not included in the ES2022 lib target
+  cachedPublicKey = crypto.createPublicKey({
+    key: keys[0] as unknown as crypto.JsonWebKey,
+    format: 'jwk',
+  });
+  return cachedPublicKey;
+}
+
 /**
- * Verifies a Supabase HS256 JWT locally using SUPABASE_JWT_SECRET.
- * This avoids calling supabaseAdmin.auth.getUser(token), which writes to the
- * GoTrueClient's in-memory session and causes subsequent supabaseAdmin PostgREST
- * queries to send the user's JWT (activating RLS) instead of the service-role key.
+ * Verifies a Supabase ES256 JWT locally using the project's JWKS public key.
+ * The key is fetched once from /auth/v1/.well-known/jwks.json and cached in memory.
+ * This avoids calling supabaseAdmin.auth.getUser(token), which contaminates the
+ * GoTrueClient's in-memory session and causes subsequent PostgREST queries to
+ * use the user's JWT (activating RLS) instead of the service-role key.
  */
-function verifySupabaseJWT(token: string): JWTPayload | null {
+async function verifySupabaseJWT(token: string): Promise<JWTPayload | null> {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   const [headerB64, payloadB64, signatureB64] = parts as [string, string, string];
 
-  // Recompute the expected signature
-  const expectedSig = crypto
-    .createHmac('sha256', env.SUPABASE_JWT_SECRET)
-    .update(`${headerB64}.${payloadB64}`)
-    .digest('base64url');
-
-  // Constant-time comparison (prevent timing attacks)
-  const expectedBytes = Buffer.from(expectedSig, 'base64url');
-  const actualBytes = Buffer.from(signatureB64, 'base64url');
-  if (
-    expectedBytes.length !== actualBytes.length ||
-    !crypto.timingSafeEqual(expectedBytes, actualBytes)
-  ) {
-    return null;
-  }
-
-  let payload: JWTPayload;
   try {
-    payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as JWTPayload;
+    const pubKey = await getSupabasePublicKey();
+    const data = Buffer.from(`${headerB64}.${payloadB64}`);
+    // JWT ES256 signatures are R||S (ieee-p1363 / raw), not DER-encoded
+    const signature = Buffer.from(signatureB64, 'base64url');
+    const valid = crypto.verify(
+      'SHA256',
+      data,
+      { key: pubKey, dsaEncoding: 'ieee-p1363' },
+      signature,
+    );
+    if (!valid) return null;
+
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as JWTPayload;
+
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    if (!payload.sub) return null;
+
+    return payload;
   } catch {
     return null;
   }
-
-  // Check expiry
-  if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-  if (!payload.sub) return null;
-
-  return payload;
 }
 
 /**
@@ -70,10 +85,8 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       throw new AppError('UNAUTHORIZED', 401, 'Authentication token is required');
     }
 
-    // Verify the JWT locally — avoids contaminating supabaseAdmin's GoTrueClient session
-    const payload = verifySupabaseJWT(token);
+    const payload = await verifySupabaseJWT(token);
     if (!payload) {
-      console.error('[auth] JWT verification failed — check SUPABASE_JWT_SECRET on Render');
       throw new AppError('UNAUTHORIZED', 401, 'Invalid or expired authentication token');
     }
 
@@ -85,12 +98,6 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       .single();
 
     if (dbError || !crmUser) {
-      console.error(
-        '[auth] User not found in CRM users table — sub:',
-        payload.sub,
-        'dbError:',
-        dbError?.message,
-      );
       throw new AppError('UNAUTHORIZED', 401, 'User account not found in CRM');
     }
 
