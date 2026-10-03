@@ -18,6 +18,9 @@ import webhookWebsiteRoutes from '../modules/webhook/website.routes';
 export function createRouter(): Router {
   const router = Router();
 
+  // Reachable from the frontend via apiClient (base = /api/v1) to warm up a cold Render instance
+  router.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
   router.use('/auth', authRoutes);
   router.use('/employees', employeeRoutes);
   router.use('/leads', leadRoutes);

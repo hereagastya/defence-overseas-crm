@@ -193,11 +193,19 @@ export function LeadListPage() {
       id: 'full_name',
       header: 'Name',
       sortable: true,
-      cell: (row) => (
-        <Link to={`/leads/${row.id}`} className="font-semibold text-primary hover:underline">
-          {row.full_name}
-        </Link>
-      ),
+      cell: (row) => {
+        const formKind = row.notes?.match(/^Form: (.+)/m)?.[1] ?? null;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <Link to={`/leads/${row.id}`} className="font-semibold text-primary hover:underline">
+              {row.full_name}
+            </Link>
+            {formKind && (
+              <span className="text-[11px] text-muted-foreground capitalize">{formKind} form</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'phone',

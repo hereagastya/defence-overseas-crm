@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@doc/shared';
 import type { AxiosError } from 'axios';
+import { apiClient } from '@/lib/api-client';
 import { useLogin } from './api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +20,12 @@ import {
 export function LoginPage() {
   const navigate = useNavigate();
   const { mutate: login, isPending } = useLogin();
+
+  // Ping the health endpoint on mount so Render wakes up before the user clicks login.
+  // Silently ignored if the server is already awake or if the ping itself fails.
+  useEffect(() => {
+    apiClient.get('/health').catch(() => undefined);
+  }, []);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),

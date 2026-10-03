@@ -287,6 +287,16 @@ export function LeadDetailPage() {
               label="Source"
               value={LEAD_SOURCE_LABELS[lead.lead_source as LeadSource] ?? lead.lead_source}
             />
+            {(() => {
+              const formKind = lead.notes?.match(/^Form: (.+)/m)?.[1] ?? null;
+              return formKind ? (
+                <InfoRow
+                  icon={BookOpen}
+                  label="Form"
+                  value={<span className="capitalize">{formKind}</span>}
+                />
+              ) : null;
+            })()}
             <InfoRow icon={GraduationCap} label="Course" value={lead.course ?? '—'} />
             <InfoRow
               icon={UserCheck}
