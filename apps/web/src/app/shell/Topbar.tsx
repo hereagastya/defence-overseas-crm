@@ -259,7 +259,7 @@ export function Topbar() {
         <SheetContent
           side="left"
           className="w-72 border-r-0 p-0"
-          style={{ background: 'hsl(147 47% 7%)' }}
+          style={{ background: 'hsl(147 47% 7%)', color: 'white' }}
         >
           <div className="flex h-16 items-center border-b border-white/10 px-4">
             <div className="flex items-center gap-2.5">

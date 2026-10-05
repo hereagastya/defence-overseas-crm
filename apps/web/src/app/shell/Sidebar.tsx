@@ -85,7 +85,7 @@ export function Sidebar() {
         'hidden lg:flex flex-col border-r border-white/10 transition-all duration-300',
         sidebarCollapsed ? 'w-16' : 'w-56',
       )}
-      style={{ background: 'hsl(147 47% 7%)' }}
+      style={{ background: 'hsl(147 47% 7%)', color: 'white' }}
     >
       {/* Logo */}
       <div
